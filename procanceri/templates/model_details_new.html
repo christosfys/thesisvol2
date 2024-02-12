@@ -1,0 +1,1078 @@
+{% load static %}
+{% load filter_tags %}
+<!doctype html>
+<html lang="en">
+  <!-- Head -->
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet"
+      type="text/css">
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.5.0/font/bootstrap-icons.min.css"
+      rel="stylesheet">
+    <link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+      <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4"></script>
+
+    <link href="{% static 'css/style.css' %}" rel="stylesheet" type="text/css">
+    <script type="text/javascript" src="{% static '/js/main.js' %}"></script>
+    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
+
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.3.2/jspdf.debug.js"></script>
+
+    <title>Procancer-I</title>
+    <link rel='icon' href="{% static 'images/favicon.png' %}"
+      type='image/x-icon' sizes="16x16" style="    margin-right: 500px;" />
+    <style>
+        /* Initially hide information divs */
+        .info {
+          display: none;
+        }
+      </style>
+  </head>
+  <!-- Body -->
+  <body>
+    <!-- Navbar -->
+    <nav class="navbar  bg-start">
+      <div class="container-fluid">
+        <form class="d-flex">
+          <button class="navbar-toggler" type="button"
+            data-bs-toggle="offcanvas" data-bs-target="#sidebar"
+            aria-controls="sidebar">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <img src="{% static 'images/ai-pass.svg' %}" class="rounded"
+            style="display: inline-block; padding-left:20px ; width:50%;"
+            alt="...">
+
+        </form>
+        <form class="d-flex search_bar">
+          <input class="form-control me-2" type="search"
+            placeholder="Search for models" aria-label="Search">
+          <button class="btn btn-secondary" type="submit">Search</button>
+        </form>
+      </div>
+    </nav>
+    <!-- Side Navbar - Offcanvas -->
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebar"
+      aria-labelledby="sidebar-label">
+      <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="sidebar-label">Quick Links</h5>
+        <button type="button" class="btn-close text-reset"
+          data-bs-dismiss="offcanvas" aria-label="Close"></button>
+      </div>
+      <div class="offcanvas-body">
+        <!-- Contents of the sidebar go here -->
+        <ul class="list-unstyled">
+          <li class="mb-2">
+            <a href="#" id="models"
+              class="d-flex align-items-center link-dark text-decoration-none">
+              <i class="bi bi-box me-3"></i>
+              <span class="fs-5 fw-semibold">All Models</span>
+            </a>
+          </li>
+          <li class="mb-2">
+            <a href="#" id="publishers"
+              class="d-flex align-items-center link-dark text-decoration-none">
+              <i class="bi bi-person me-3"></i>
+              <span class="fs-5 fw-semibold">All Publishers</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <!-- Main -->
+
+    <a id="scroll-to-top" href="#" title="Scroll to Top">&uarr;</a>
+
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-sm-2">
+          <div class="title_info"><h4 class="display-10"
+              style="text-align: center; padding-top: 20%; ">{{task_name}}</h4>
+
+          </div>
+<br>
+          <div id="buttonsinfo">
+          <label style="margin-left: 20px;"><h5><strong> Choose your purpose</strong> </h5> </label>
+
+          <select name="options" id="options" onchange="showSelectedOption()" style="margin-left: 20px;">
+            <option disabled selected value>Select your role:</option>
+            <option value="AI_Developer">AI Developer</option>
+            <option value="Clinical">Clinical</option>
+            <option value="Patient">Patient</option>
+           
+          </select><br>
+        <div class="menubutton">
+           <button onclick=" showpop();" id="openPopupBtn"
+              class="btn ">Download Json
+            </button><br>
+          <button  class="btn" onclick="showmoreinfo()" value="Show More Info"
+              id="showinfo">Show more Info</button>
+            
+              
+                    <button onclick="generateinfo()">
+                      <span>Save </span>
+                      <svg style="text-align: right;"   xmlns="http://www.w3.org/2000/svg" width="20" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                      </svg>
+                  </button>
+                    
+                      <button id="viewpage"  disabled>See Data</button><br>
+                    </div>
+                    </div>
+<br>
+                    <div id="qrcode_menu" style="text-align: center;">
+                      <div>
+                      <label style="color: aliceblue; justify-content: center; 
+                      " >Preview the repo :</label><br>
+                      </div>
+                      
+                      <div id="qrcode"></div>
+
+
+
+
+                    </div>
+        </div>
+       
+
+        <hr class="d-md-none">
+
+        <div class="col-9">
+          <h5 class="display-6" value="{ {model_name }}" style="text-align: center;font-weight: bold; color: #ffa500 ">{{ model_name }}</strong></h5>
+
+
+          <div class="infobox">
+            <div class="jumbotron mt-2">
+                <h3 >Description</h4>
+                <p class="lead" style="font-size: 18px;">{{ model_descr }}</p>
+                <h3 >Notice</h4>
+                <p class="lead" style="font-size: 18px;">{{ model_risk_assesment }}</p>
+            </div>
+        
+            <div class="jumbotron mt-2">
+                <h3 >Ethical Concerns</h4>
+                <p class="lead"style="font-size: 18px;">{{ model_ethical_con }}</p>
+            </div>
+        </div>
+        
+        <div id="popup" class="popup">
+          <div class="popup-content">
+            <span class="close" id="closePopupBtn"></span>
+            <button id='close' onclick="closepopup();">close</button>
+            <h2>Save as:</h2>
+
+
+            <input type="checkbox" value="json"> JSON file
+
+            <button id="submitBtn" onclick="submitpop();">Submit</button>
+          </div>
+        </div>
+      
+      
+       
+      
+  
+
+        <div id="infoOption_AI_Developer"  class="info">
+          <table class="table" id="AI_Developer_info">
+            <h2 class="display-7"  style="font-weight: bold; text-align: center;">AI Developer </h2>
+            <button type="button" class="btn"
+                onclick="selectAll('AI_Developer')">Select All</button>
+                 
+                  <button type="button" class="btn"
+                    onclick="deselectAll('AI_Developer')">Deselect All</button>
+            <tr>
+              <td><input name="Images"  type="checkbox" value="{{dataset_seriesTypes}}" /></td>
+              <td>Images</td>
+         
+              <td>{{ dataset_seriesTypes }}</td>
+            </tr>
+            
+
+
+            <tr>
+              <tr>
+
+                <td><input name="Manufacturers" type="checkbox"
+                    value="{{dataset_deviceManufacturer}}" /></td>
+                <td>Manufacturers</td>
+                <td>{{dataset_deviceManufacturer}}</td>
+              </tr>
+              <tr>
+
+                <td><input name="Modalities" type="checkbox"
+                    value="{{dataset_modality}}" /></td>
+                <td>Modalities</td>
+                <td>{{dataset_modality}}</td>
+              </tr>
+              <tr>
+                <td><input name="Number_of_Images" type="checkbox"
+                    value="{{dataset_images}}" /></td>
+                <td>Number of Images</td>
+                <td>{{dataset_images}}</td>
+              </tr>
+              <tr>
+                <td><input name="Number_of_Subjects" type="checkbox"
+                    value="{{dataset_subjects}}" /></td>
+                <td>Number of Subjects</td>
+                <td>{{dataset_subjects}}</td>
+              </tr>
+              <tr>
+                <td><input name="Number_of_Studies" type="checkbox"
+                    value="{{dataset_studies}}" /></td>
+                <td>Number of Studies</td>
+                <td>{{dataset_studies}}</td>
+              </tr>
+
+              <tr>
+                <td><input name="Number_of_Series" type="checkbox"
+                    value="{{dataset_series}}" /></td>
+                <td>Number of Series</td>
+                <td>{{dataset_series}}</td>
+              </tr>
+
+              <tr>
+
+                <td><input name="Identifier" type="checkbox"
+                    value="{{dataset_identifier}}" /></td>
+                <td>Identifier</td>
+                <td>{{dataset_identifier}}</td>
+              </tr>
+
+              <tr>
+                <td><input name="Publisher" type="checkbox"
+                    value="{{dataset_publisher}}" /></td>
+                <td>Publisher</td>
+                <td>{{dataset_publisher}}</td>
+              </tr>
+
+              <tr>
+                <td><input name="Contact_point" type="checkbox"
+                    value="{{dataset_contactPoint}}" /></td>
+                <td>Contact Point</td>
+                <td>{{dataset_contactPoint}}</td>
+              </tr>
+
+              <tr>
+                <td><input name="Anonymized" type="checkbox"
+                    value="{{dataset_anonymized}}" /></td>
+                <td>Anonymized</td>
+                <td>{{dataset_anonymized}}</td>
+              </tr>
+
+              <tr>
+                <td><input name="Segmentation Masks Available" type="checkbox"
+                    value="{{dataset_annotated}}" /></td>
+                <td>Segmentation Masks Available</td>
+                <td>{{dataset_annotated}}</td>
+              </tr>
+
+              <tr>
+                <td><input name="Version" type="checkbox"
+                    value="{{dataset_hasVersion}}" /></td>
+                <td>Version</td>
+                <td>{{dataset_hasVersion}}</td>
+              </tr>
+
+              <tr>
+                <td><input name="modified_date" type="checkbox"
+                    value="{{dataset_modified}}" /></td>
+                <td>Modified Date</td>
+                <td>"{{dataset_modified}}"</td>
+              </tr>
+
+              <tr>
+                <td><input name="Language" type="checkbox"
+                    value="{{dataset_language}}" /></td>
+                <td>Language</td>
+                <td>{{dataset_language}}</td>
+              </tr>
+
+              <tr>
+                <td><input name="Metadata" type="checkbox"
+                    value="{{dataset_metadataIssued}}" /></td>
+                <td>Metadata Issued</td>
+                <td>{{dataset_metadataIssued}}</td>
+              </tr>
+
+              <tr>
+                <td><input name="Dataset_ecrfs_series" type="checkbox"
+                    value="{{dataset_ecrfs_series}}" /></td>
+                <td>Dataset: ecrfs & series ID</td>
+                <td>{{dataset_ecrfs_series}}</td>
+              </tr>
+
+              <tr>
+                <td><input name="Dataset_segments" type="checkbox"
+                    value="{{dataset_segments}}" /></td>
+                <td>Dataset: Segmentations ID</td>
+                <td>{{dataset_segments}}</td>
+              </tr>
+
+              <tr>
+                <td><input name="Dataset_motcor" type="checkbox"
+                    value="{{dataset_motcor}}" /></td>
+                <td>Dataset: Motion Corrections ID</td>
+                <td>{{dataset_motcor}}</td>
+              </tr>
+
+              <tr>
+                <td><input name="Dataset_coregs" type="checkbox"
+                    value="{{dataset_coregs}}" /></td>
+                <td>Dataset: Co-Registrations ID</td>
+                <td>{{dataset_coregs}}</td>
+              </tr>
+
+              <tr>
+                <td><input name="Patient_Age_Range" type="checkbox"
+                    value="{{dataset_ageLow}} - {{dataset_ageHigh}}" /></td>
+                <td>Patient Age Range</td>
+                <td>{{dataset_ageLow}} - {{dataset_ageHigh}}</td>
+              </tr>
+
+              <tr>
+                <td><input name="Dataset_license" type="checkbox"
+                    value="{{dataset_license}}" /></td>
+                <td>License</td>
+                <td>{{dataset_license}}</td>
+              </tr>
+
+              <tr>
+                <td><input name="Dataset_rights" type="checkbox"
+                    value="{{dataset_rights}}" /></td>
+                <td>Rights</td>
+                <td>{{dataset_rights}}</td>
+              </tr>
+            </table>
+
+          </div>
+          <div id="infoOption_Clinical"  class="info">
+            <h5 class="display-7"  style="font-weight: bold; text-align: center;">Clinical </h5>
+            <table class="table" id="Clinical_info">
+              <button type="button" class="btn"
+              onclick="selectAll('Clinical')">Select All</button>
+               
+                <button type="button" class="btn"
+                  onclick="deselectAll('Clinical')">Deselect All</button>
+              <tbody>
+                <tr>
+
+                  <td><input name="Dataset_Identifier" type="checkbox"
+                      value="{{dataset_md5}}" /></td>
+                  <th scope="row">Identifier</th>
+                  <td>{{dataset_md5}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Dataset_Path" type="checkbox"
+                      value="{{dataset_path}}" /></td>
+                  <th scope="row">Path</th>
+                  <td>{{dataset_path}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Dataset_Author" type="checkbox"
+                      value="{{dataset_Author}}" /></td>
+                  <th scope="row">Author</th>
+                  <td>{{dataset_Author}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Dataset_Num_Files" type="checkbox"
+                      value="{{dataset_nfiles}}" /></td>
+                  <th scope="row">Number of Files</th>
+                  <td>{{dataset_nfiles}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Dataset_File_Types" type="checkbox"
+                      value="{{dataset_type}}" /></td>
+                  <th scope="row">File Types</th>
+                  <td>{{dataset_type}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Dataset_Size" type="checkbox"
+                      value="{{dataset_size}}" /></td>
+                  <th scope="row">Size</th>
+                  <td>{{dataset_size}} MB</td>
+                </tr>
+                <tr>
+                  <td><input name="Dataset_Num_Patients" type="checkbox"
+                      value="{{dataset_number_of_cases}}" /></td>
+                  <th scope="row">Number of Patients</th>
+                  <td>{{dataset_number_of_cases}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Dataset_Creation_Date" type="checkbox"
+                      value="{{dataset_created_tr}}" /></td>
+                  <th scope="row">Creation Date</th>
+                  <td>{{dataset_created_tr}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Dataset_Modified_Date" type="checkbox"
+                      value="{{dataset_modified_tr}}" /></td>
+                  <th scope="row">Modified Date</th>
+                  <td>{{dataset_modified_tr}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Dataset_Endpoint_URL" type="checkbox"
+                      value="{{dataset_endpointurl}}" /></td>
+                  <th scope="row">Endpoint URL</th>
+                  <td>{{dataset_endpointurl}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Dataset_S3_Storage" type="checkbox"
+                      value="{{dataset_url}}" /></td>
+                  <th scope="row">S3 Storage</th>
+                  <td>{{dataset_url}}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div id="infoOption_Patient"  class="info">
+            <h2 class="display-7"   style="font-weight: bold; text-align: center;">Patient </h2>
+            <button type="button" class="btn"
+            onclick="selectAll('Patient')">Select All</button>
+             
+              <button type="button" class="btn"
+                onclick="deselectAll('Patient')">Deselect All</button>
+
+            <table class="table" id="Patient_info">
+              <tbody>
+
+                <tr>
+                  <td><input name="Model_UUID" type="checkbox"
+                      value="{{model_uuid}}" /></td>
+                  <th scope="row">Model UUID</th>
+                  <td>{{model_uuid}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Model_Author" type="checkbox"
+                      value="{{model_author}}" /></td>
+                  <th scope="row">Author</th>
+                  <td>{{model_author}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Model_Source_Run_ID" type="checkbox"
+                      value="{{model_source_run_id}}" /></td>
+                  <th scope="row">Source Run ID</th>
+                  <td>{{model_source_run_id}}</td>
+                </tr>
+                <tr>
+
+                  <td><input name="git_repo" type="checkbox"
+                      value="{{model_git_repo}}" /></td>
+                  <th scope="row">Git Repo</th>
+                  <td>{{model_git_repo}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Model_Implementation" type="checkbox"
+                      value="{{model_implementation}}" /></td>
+                  <th scope="row">Implementation</th>
+                  <td>{{model_implementation}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Model_Algorithm" type="checkbox"
+                      value="{{model_algorithm}}" /></td>
+                  <th scope="row">Algorithm</th>
+                  <td>{{model_algorithm}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Model_Learning_Method" type="checkbox"
+                      value="{{model_learning_method}}" /></td>
+                  <th scope="row">Learning Method</th>
+                  <td>{{model_learning_method}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Model_Learning_Problem" type="checkbox"
+                      value="{{model_learning_problem}}" /></td>
+                  <th scope="row">Learning Problem</th>
+                  <td>{{model_learning_problem}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Model_Metrics" type="checkbox"
+                      value="{{model_metric}}" /></td>
+                  <th scope="row">Metrics</th>
+                  <td>{{model_metric}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Model_Metric_Score" type="checkbox"
+                      value="{{model_metric_score}}" /></td>
+                  <th scope="row">Metric Score</th>
+                  <td>{{model_metric_score}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Model_Batch_Size" type="checkbox"
+                      value="{{model_batch_size}}" /></td>
+                  <th scope="row">Batch Size</th>
+                  <td>{{model_batch_size}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Model_Input_Channels" type="checkbox"
+                      value="{{model_input_ch}}" /></td>
+                  <th scope="row">Input Channels</th>
+                  <td>{{model_input_ch}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Model_Number_Labels" type="checkbox"
+                      value="{{model_number_labels}}" /></td>
+                  <th scope="row">Number Labels</th>
+                  <td>{{model_number_labels}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Model_Filters" type="checkbox"
+                      value="{{model_filters}}" /></td>
+                  <th scope="row">Filters</th>
+                  <td>{{model_filters}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Model_Epochs" type="checkbox"
+                      value="{{model_epoch}}" /></td>
+                  <th scope="row">Epochs</th>
+                  <td>{{model_epoch}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Model_Activation_Function" type="checkbox"
+                      value="{{model_activation}}" /></td>
+                  <th scope="row">Activation Function</th>
+                  <td>{{model_activation}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Model_Layer_Activation_Function"
+                      type="checkbox" value="{{model_layer_activation}}" /></td>
+                  <th scope="row">Layer Activation Function</th>
+                  <td>{{model_layer_activation}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Model_Optimiser" type="checkbox"
+                      value="{{model_optimiser}}" /></td>
+                  <th scope="row">Optimiser</th>
+                  <td>{{model_optimiser}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Model_Loss_Function" type="checkbox"
+                      value="{{model_loss}}" /></td>
+                  <th scope="row">Loss Function</th>
+                  <td>{{model_loss}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Model_Hardware" type="checkbox"
+                      value="{{model_device}}" /></td>
+                  <th scope="row">Hardware</th>
+                  <td>{{model_device}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Model_Storage" type="checkbox"
+                      value="{{model_storage}}" /></td>
+                  <th scope="row">Model Storage</th>
+                  <td>{{model_storage}}</td>
+                </tr>
+                <tr>
+                  <td><input name="Model_Framework" type="checkbox"
+                      value="{{model_framework}}" /></td>
+                  <th scope="row">Model Framework</th>
+                  <td>{{model_framework}}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+        
+
+          <div id="someinfos" class="someinfos">
+
+            <table class="table " id="AI_Developer_more_info" hidden>
+              <h2 class="display-7" id="h1dummy" class="someinfostable" style="font-weight: bold; text-align: center;" hidden>AI Developer </h2>
+              <tr>
+                <td><input name="Identifier" type="checkbox"
+                    value="{{dataset_identifier}}" /></td>
+                <td>Identifier</td>
+                <td>{{dataset_identifier}}</td>
+
+
+              </tr>
+
+              <tr>
+                <td><input name="Publisher" type="checkbox"
+                    value="{{dataset_publisher}}" /></td>
+                <td>Publisher</td>
+                <td>{{dataset_publisher}}</td>
+
+              </tr>
+
+              <tr>
+                <td><input name="Contact_point" type="checkbox"
+                    value="{{dataset_contactPoint}}" /></td>
+                <td>Contact Point</td>
+                <td>{{dataset_contactPoint}}</td>
+
+              </tr>
+
+              <tr>
+                <td><input name="Anonymized" type="checkbox"
+                    value="{{dataset_anonymized}}" /></td>
+                <td>Anonymized</td>
+                <td>{{dataset_anonymized}}</td>
+
+              </tr>
+
+              <tr>
+                <td><input name="Segmentation Masks Available"
+                    type="checkbox"
+                    value="{{dataset_annotated}}" /></td>
+                <td>Segmentation Masks Available</td>
+                <td>{{dataset_annotated}}</td>
+
+              </tr>
+
+              <tr>
+                <td><input name="Version" type="checkbox"
+                    value="{{dataset_hasVersion}}" /></td>
+                <td>Version</td>
+                <td>{{dataset_hasVersion}}</td>
+
+              </tr>
+
+              <tr>
+                <td><input name="modified_date" type="checkbox"
+                    value="{{dataset_modified}}" /></td>
+                <td>Modified Date</td>
+                <td>{{dataset_modified}}</td>
+
+              </tr>
+
+              <tr>
+                <td><input name="Language" type="checkbox"
+                    value="{{dataset_language}}" /></td>
+                <td>Language</td>
+                <td>{{dataset_language}}</td>
+
+              </tr>
+
+              <tr>
+                <td><input name="Metadata" type="checkbox"
+                    value="{{dataset_metadataIssued}}" /></td>
+                <td>Metadata Issued</td>
+                <td>{{dataset_metadataIssued}}</td>
+
+              </tr>
+
+              <tr>
+                <td><input name="Dataset_ecrfs_series" type="checkbox"
+                    value="{{dataset_ecrfs_series}}" /></td>
+                <td>Dataset: ecrfs & series ID</td>
+                <td>{{dataset_ecrfs_series}}</td>
+
+              </tr>
+
+              <tr>
+                <td><input name="Dataset_segments" type="checkbox"
+                    value="{{dataset_segments}}" /></td>
+                <td>Dataset: Segmentations ID</td>
+                <td>{{dataset_segments}}</td>
+
+              </tr>
+
+              <tr>
+                <td><input name="Dataset_motcor" type="checkbox"
+                    value="{{dataset_motcor}}" /></td>
+                <td>Dataset: Motion Corrections ID</td>
+                <td>{{dataset_motcor}}</td>
+
+              </tr>
+
+              <tr>
+                <td><input name="Dataset_coregs" type="checkbox"
+                    value="{{dataset_coregs}}" /></td>
+                <td>Dataset: Co-Registrations ID</td>
+                <td>{{dataset_coregs}}</td>
+
+              </tr>
+
+              <tr>
+                <td><input name="Patient_Age_Range" type="checkbox"
+                    value="{{dataset_ageLow}} - {{dataset_ageHigh}}" /></td>
+                <td>Patient Age Range</td>
+                <td>{{dataset_ageLow}} - {{dataset_ageHigh}}</td>
+
+              </tr>
+
+              <tr>
+                <td><input name="Dataset_license" type="checkbox"
+                    value="{{dataset_license}}" /></td>
+
+                <td>License</td>
+                <td>{{dataset_license}}</td>
+
+                
+              </tr>
+
+              <tr>
+                <td><input name="Dataset_rights" type="checkbox"
+                    value="{{dataset_rights}}" /></td>
+                <td>Rights</td>
+                <td>{{dataset_rights}}</td>
+
+              </tr>
+            </table>
+            <h2 class="display-7" id="h2dummy" class="someinfostable" style="font-weight: bold; text-align: center;" hidden>Clinical</h2>
+
+            <table class="table someinfostable" id="Clinical_more_info"
+              style="width:100%" hidden>
+             
+              <tbody>
+                <tr>
+                  <td><input name="Dataset_Identifier" type="checkbox"
+                      value="{{dataset_md5}}" /></td>
+                  <th scope="row">Identifier</th>
+                  <td>{{dataset_md5}}</td>
+
+
+                </tr>
+                <tr>
+                  <td><input name="Dataset_Path" type="checkbox"
+                      value="{{dataset_path}}" /></td>
+                  <th scope="row">Path</th>
+                  <td>{{dataset_path}}</td>
+
+                </tr>
+                <tr>
+                  <td><input name="Dataset_Author" type="checkbox"
+                      value="{{dataset_Author}}" /></td>
+                  <th scope="row">Author</th>
+                  <td>{{dataset_Author}}</td>
+
+                </tr>
+                <tr>
+                  <td><input name="Dataset_Num_Files" type="checkbox"
+                      value="{{dataset_nfiles}}" /></td>
+                  <th scope="row">Number of Files</th>
+                  <td>{{dataset_nfiles}}</td>
+
+                </tr>
+                <tr>
+                  <td><input name="Dataset_File_Types" type="checkbox"
+                      value="{{dataset_type}}" /></td>
+                  <th scope="row">File Types</th>
+                  <td>{{dataset_type}}</td>
+
+                </tr>
+                <tr>
+                  <td><input name="Dataset_Size" type="checkbox"
+                      value="{{dataset_size}}" /></td>
+                  <th scope="row">Size</th>
+                  <td>{{dataset_size}}</td>
+
+                </tr>
+                <tr>
+                  <td><input name="Dataset_Num_Patients" type="checkbox"
+                      value="{{dataset_number_of_cases}}" /></td>
+                  <th scope="row">Number of Patients</th>
+                  <td>{{dataset_number_of_cases}}</td>
+
+                </tr>
+                <tr>
+                  <td><input name="Dataset_Creation_Date" type="checkbox"
+                      value="{{dataset_created_tr}}" /></td>
+                  <th scope="row">Creation Date</th>
+                  <td>{{dataset_created_tr}}</td>
+
+                </tr>
+                <tr>
+                  <td><input name="Dataset_Modified_Date" type="checkbox"
+                      value="{{dataset_modified_tr}}" /></td>
+                  <th scope="row">Modified Date</th>
+                  <td>{{dataset_modified_tr}}</td>
+
+                </tr>
+                <tr>
+                  <td><input name="Dataset_Endpoint_URL" type="checkbox"
+                      value="{{dataset_endpointurl}}" /></td>
+                  <th scope="row">Endpoint URL</th>
+                  <td>{{dataset_endpointurl}}</td>
+
+                </tr>
+                <tr>
+                  <td><input name="Dataset_S3_Storage" type="checkbox"
+                      value="{{dataset_url}}" /></td>
+                  <th scope="row">S3 Storage</th>
+                  <td>{{dataset_url}}</td>
+
+                </tr>
+              </tbody>
+            </table>
+            
+            <table class="table  someinfostable" id="Patient_more_info"
+            style="width:100%" hidden>
+            <h2 class="display-7" id="h3dummy" class="someinfostable" style="font-weight: bold; text-align: center;" hidden>Patient</h2>
+
+          
+              <tbody>
+                
+                  <td><input name="Model_UUID" type="checkbox"
+                      value="{{model_uuid}}" /></td>
+                  <th scope="row">Model UUID</th>
+                  <td>{{model_uuid}}</td>
+
+
+                </tr>
+                <tr>
+                  <td><input name="Model_Author" type="checkbox"
+                      value="{{model_author}}" /></td>
+                  <th scope="row">Author</th>
+                  <td>{{model_author}}</td>
+
+                </tr>
+                <tr>
+                  <td><input name="Model_Source_Run_ID" type="checkbox"
+                      value="{{model_source_run_id}}" /></td>
+                  <th scope="row">Source Run ID</th>
+                  <td>{{model_source_run_id}}</td>
+
+                </tr>
+                <tr>
+
+                  <td><input name="git_repo" type="checkbox"
+                      value="{{model_git_repo}}" /></td>
+                  <th scope="row">Git Repo</th>
+                  <td>{{model_git_repo}}</td>
+
+
+
+                </tr>
+                <tr>
+                  <td><input name="Model_Implementation" type="checkbox"
+                      value="{{model_implementation}}" /></td>
+                  <th scope="row">Implementation</th>
+                  <td>{{model_implementation}}</td>
+
+
+                </tr>
+                <tr>
+                  <td><input name="Model_Algorithm" type="checkbox"
+                      value="{{model_algorithm}}" /></td>
+                  <th scope="row">Algorithm</th>
+                  <td>{{model_algorithm}}</td>
+
+                </tr>
+                <tr>
+                  <td><input name="Model_Learning_Method" type="checkbox"
+                      value="{{model_learning_method}}" /></td>
+                  <th scope="row">Learning Method</th>
+                  <td>{{model_learning_method}}</td>
+
+                </tr>
+                <tr>
+                  <td><input name="Model_Learning_Problem" type="checkbox"
+                      value="{{model_learning_problem}}" /></td>
+                  <th scope="row">Learning Problem</th>
+                  <td>{{model_learning_problem}}</td>
+
+                </tr>
+                <tr>
+                  <td><input name="Model_Metrics" type="checkbox"
+                      value="{{model_metric}}" /></td>
+                  <th scope="row">Metrics</th>
+                  <td>{{model_metric}}</td>
+
+                </tr>
+                <tr>
+                  <td><input name="Model_Metric_Score" type="checkbox"
+                      value="{{model_metric_score}}" /></td>
+                  <th scope="row">Metric Score</th>
+                  <td>{{model_metric_score}}</td>
+
+                </tr>
+                <tr>
+                  <td><input name="Model_Batch_Size" type="checkbox"
+                      value="{{model_batch_size}}" /></td>
+                  <th scope="row">Batch Size</th>
+                  <td>{{model_batch_size}}</td>
+
+                </tr>
+                <tr>
+                  <td><input name="Model_Input_Channels" type="checkbox"
+                      value="{{model_input_ch}}" /></td>
+                  <th scope="row">Input Channels</th>
+                  <td>{{model_input_ch}}</td>
+
+                </tr>
+                <tr>
+                  <td><input name="Model_Number_Labels" type="checkbox"
+                      value="{{model_number_labels}}" /></td>
+                  <th scope="row">Number Labels</th>
+                  <td>{{model_number_labels}}</td>
+
+                </tr>
+                <tr>
+                  <td><input name="Model_Filters" type="checkbox"
+                      value="{{model_filters}}" /></td>
+                  <th scope="row">Filters</th>
+                  <td>{{model_filters}}</td>
+
+                </tr>
+                <tr>
+                  <td><input name="Model_Epochs" type="checkbox"
+                      value="{{model_epoch}}" /></td>
+                  <th scope="row">Epochs</th>
+                  <td>{{model_epoch}}</td>
+
+                </tr>
+                <tr>
+                  <td><input name="Model_Activation_Function" type="checkbox"
+                      value="{{model_activation}}" /></td>
+                  <th scope="row">Activation Function</th>
+                  <td>{{model_activation}}</td>
+
+                </tr>
+                <tr>
+                  <td><input name="Model_Layer_Activation_Function"
+                      type="checkbox" value="{{model_layer_activation}}" /></td>
+                  <th scope="row">Layer Activation Function</th>
+                  <td>{{model_layer_activation}}</td>
+
+                </tr>
+                <tr>
+                  <td><input name="Model_Optimiser" type="checkbox"
+                      value="{{model_optimiser}}" /></td>
+                  <th scope="row">Optimiser</th>
+                  <td>{{model_optimiser}}</td>
+
+                </tr>
+                <tr>
+                  <td><input name="Model_Loss_Function" type="checkbox"
+                      value="{{model_loss}}" /></td>
+                  <th scope="row">Loss Function</th>
+                  <td>{{model_loss}}</td>
+
+                </tr>
+                <tr>
+                  <td><input name="Model_Hardware" type="checkbox"
+                      value="{{model_device}}" /></td>
+                  <th scope="row">Hardware</th>
+                  <td>{{model_device}}</td>
+
+                </tr>
+                <tr>
+                  <td><input name="Model_Storage" type="checkbox"
+                      value="{{model_storage}}" /></td>
+                  <th scope="row">Model Storage</th>
+                  <td>{{model_storage}}</td>
+
+                </tr>
+                <tr>
+                  <td><input name="Model_Framework" type="checkbox"
+                      value="{{model_framework}}" /></td>
+                  <th scope="row">Model Framework</th>
+                  <td>{{model_framework}}</td>
+
+                </tr>
+              </tbody>
+            </table>
+
+          </div>
+       
+
+        </div>
+         <!-- Footer -->
+         <footer class=" text-light py-2"
+         style="margin-top: 140px;  left: 0; bottom: 60px; width: 100%; z-index: 1; background-color: #00004b;">
+         <div class="container-fluid">
+           <div class="row">
+             <div class="col-md-12 " >
+               <div class="text-center">
+                 <img src="{% static 'images/eu_flag_300x200.png' %}"
+                   class="rounded"
+                   style="display: inline-block; vertical-align: middle;"
+                   alt="...">
+                 <span
+                   style="display: inline-block; white-space: pre-line;  vertical-align: middle; text-align: left;">ProCAncer-I
+                   has received funding from the European Union’s Horizon 2020
+                   research and
+                   innovation programme under grant agreement
+                   No 952159 http://ec.europa.eu/digital-single-market/ehealth</span>
+               </div>
+             </div>
+           </div>
+         </div>
+       </footer>
+
+       <footer class="bg-dark text-light py-2"
+         style=" left: 0; bottom: 0; width: 100%; z-index: 2;">
+         <div class="container">
+           <p class="text-center mb-0">© ProstateNET & ProCAncer-I All rights
+             reserved</p>
+
+           <a href="https://www.forth.gr/_gfx/pdf/ConditionofUseITE_EN.pdf"
+             target="_blank" rel="noopener"><p class="text-center mb-0">Conditions
+               of Use</a>
+             |
+             <a href="https://www.forth.gr/_gfx/pdf/PrivacyPolicy_EN.pdf"
+               target="_blank" rel="noopener">Privacy Policy</p> </a>
+         </div>
+       </footer>
+
+      </body>
+
+    <script>
+      // JavaScript to redirect when the button is clicked
+      document.getElementById('viewpage').addEventListener('click', function() {
+          window.location.href = "/roles";
+      });
+  </script>
+   <script>
+       jsonData = { "task_name":"{{task_name}}",
+
+                    "model_uuid": "{{model_uuid}}",
+                    "model_git_repo": "{{model_git_repo}}",
+                  "model_implementation": "{{model_implementation}}",
+                              "download_model_link": "{{download_model}}",
+                  }
+                 sessionStorage.setItem("generalinfo",JSON.stringify(jsonData));
+
+
+
+    </script>
+    <script>
+  function isValidURL(string) {
+              var res = string.match(/((http(s)?)|(git@[\w\.]+))(:(\/\/)?)([\w\.@\:/\-~]+)(\.git)?(\/)?/);
+              return (res !== null)
+          };
+
+          function generateQRCode(url,authorName) {
+              var qrCodeDiv = document.getElementById("qrcode");
+              if (isValidURL(url)) {
+
+                var qrcode = new QRCode(qrCodeDiv, {
+                    text: url,
+                    width: 100,
+                    height: 100,
+                    colorDark : "#56a46f", 
+                  colorLight : "#ffffff"
+                    
+                        
+                });
+
+              }else {
+                  qrCodeDiv.style.width = "70px";
+                  qrCodeDiv.style.height = "70px";
+                  qrCodeDiv.style.backgroundColor = "white";
+                  qrCodeDiv.style.display = "flex";
+                  qrCodeDiv.style.justifyContent = "center";
+                  qrCodeDiv.style.alignItems = "center";
+                  qrCodeDiv.style.fontFamily = "Arial";
+                  qrCodeDiv.style.fontSize = "12px";
+                  qrCodeDiv.style.fontWeight = "bold";
+                  qrCodeDiv.innerHTML = authorName;
+              }
+          }
+      
+          generateQRCode("{{model_git_repo}}","{{model_author}}")
+    </script>
+
+
+    </html>

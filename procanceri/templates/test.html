@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>MLflow Pipeline Visualization</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    .node {
+      cursor: pointer;
+      stroke: #fff;
+      stroke-width: 1.5px;
+    }
+    .link {
+      fill: none;
+      stroke: #bbb;
+      stroke-width: 1.5px;
+    }
+    .popup {
+      position: absolute;
+      display: none;
+      background-color: #fff;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 10px;
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+      z-index: 9999;
+    }
+  </style>
+</head>
+<body>
+  <div id="popup" class="popup"></div>
+  <script>
+    // Define the graph data
+    const nodes = [
+      { id: "DICOM2NIFTY_run_id" },
+      { id: "Prepare_run_id" },
+      { id: "Preprocess_run_id" },
+      { id: "Train_fold0_run_id" },
+      { id: "Train_fold1_run_id" },
+      { id: "Train_run_id" }
+    ];
+    const links = [
+      { source: "DICOM2NIFTY_run_id", target: "Prepare_run_id" },
+      { source: "Prepare_run_id", target: "Preprocess_run_id" },
+      { source: "Preprocess_run_id", target: "Train_fold0_run_id" },
+      { source: "Preprocess_run_id", target: "Train_fold1_run_id" },
+      { source: "Train_fold0_run_id", target: "Train_run_id" },
+      { source: "Train_fold1_run_id", target: "Train_run_id" }
+    ];
+
+    // Define the popup content for each node
+    const popupContent = {
+      "DICOM2NIFTY_run_id": "<p>DICOM to NIFTY preprocessing step.</p>",
+      "Prepare_run_id": "<p>Prepare data for training.</p>",
+      "Preprocess_run_id": "<p>Data preprocessing pipeline.</p>",
+      "Train_fold0_run_id": "<p>Training on fold 0 of the data.</p>",
+      "Train_fold1_run_id": "<p>Training on fold 1 of the data.</p>",
+      "Train_run_id": "<p>Final training step using all data.</p>"
+    };
+
+    // Create the SVG container
+    const width = 400;
+    const height = 300;
+    const svg = d3.create("svg")
+        .attr("viewBox", [0, 0, width, height]);
+
+    // Create the force simulation
+    const simulation = d3.forceSimulation(nodes)
+        .force("link", d3.forceLink(links).id(d => d.id).distance(100))
+        .force("charge", d3.forceManyBody().strength(-300))
+        .force("center", d3.forceCenter(width / 2, height / 2));
+
+    // Create the links
+    const link = svg.selectAll(".link")
+        .data(links)
+        .join("line")
+        .classed("link", true);
+
+
+
+const node = svg.selectAll(".node")
+        .data(nodes)
+        .join("circle")
+        .classed("node", true)
+        .attr("r", 10)
+        .on("mouseover", (event, d) => {
+          // Show popup on mouseover
+          const popup = document.getElementById("popup");
+          popup.innerHTML = popupContent[d.id];
+          popup.style.display = "block";
+          popup.style.left = event.pageX + "px";
+          popup.style.top = event.pageY + "px";
+        })
+        .on("mouseout", () => {
+          // Hide popup on mouseout
+          const popup = document.getElementById("popup");
+          popup.style.display = "none";
+        })
+        .call(drag(simulation));
+
+    // Define the drag behavior
+    function drag(simulation) {
+
+      function dragstarted(event, d) {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+      }
+
+      function dragged(event, d) {
+        d.fx = event.x;
+        d.fy = event.y;
+      }
+
+      function dragended(event, d) {
+        if (!event.active) simulation.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+      }
+          // Create the nodes
+
+        return d3.drag()
+        .filter(function(event) {
+            return event.button === 0 && !event.ctrlKey;
+        })
+        .on("start", dragstarted)
+        .on("drag", dragged)
+        .on("end", dragended);
+    }
+
+        simulation.on("tick", () => {
+      link
+          .attr("x1", d => d.source.x)
+          .attr("y1", d => d.source.y)
+          .attr("x2", d => d.target.x)
+          .attr("y2", d => d.target.y);
+
+      node
+          .attr("cx", d => d.x)
+          .attr("cy", d => d.y);
+    });
+
+    // Append the SVG container to the document
+    document.body.appendChild(svg.node());
+       
+
+    // Create the popup
+    const popup = d3.select("#popup");
+
+    // Add mouseover and mouseout events to nodes
+    node.on("mouseover", function(event, d) {
+      popup.html(popupContent[d.id])
+        .style("left", event.pageX + "px")
+        .style("top", event.pageY + "px")
+        .style("display", "block");
+    });
+
+    node.on("mouseout", function() {
+      popup.style("display", "none");
+    });
+
+  </script>
+</body>
+</html>

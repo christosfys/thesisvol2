@@ -1,0 +1,146 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+    <!-- Head -->
+    <head>
+        <!-- Required meta tags -->
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <!-- Bootstrap CSS -->
+        <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet"  type="text/css">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.5.0/font/bootstrap-icons.min.css" rel="stylesheet">
+        <link href="{% static 'css/style.css' %}" rel="stylesheet" type="text/css" >
+        <title>Procancer-I</title>
+        <link rel='icon' href="{% static 'images/favicon.png' %}" type='image/x-icon' sizes="16x16" />
+    </head>
+    <!-- Body -->
+    <body>
+        <!-- Navbar -->
+        <nav class="navbar navbar-dark bg-dark">
+            <div class="container-fluid">
+                <form class="d-flex">
+                    <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <!-- <a class="navbar-brand" href="/">AI-Passport</a> -->
+                    <a class="navbar-brand" href="/">
+                        <img src="{% static 'images/ai-pass.svg' %}" alt="AI-Passport Logo" width="70%" height="100%">
+                      </a>
+                    
+                </form>
+                <form class="d-flex" >
+                    <input class="form-control me-2" type="search" name="model_name" placeholder="Search for models" aria-label="Search">
+                    <button class="btn btn-outline-success" type="submit">Search</button>
+                </form>
+            </div>
+        </nav>
+        <!-- Side Navbar - Offcanvas -->
+        <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebar" aria-labelledby="sidebar-label">
+            <div class="offcanvas-header">
+                <h5 class="offcanvas-title" id="sidebar-label">Quick Links</h5>
+                    <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            </div>
+            <div class="offcanvas-body">
+                <!-- Contents of the sidebar go here -->
+                <ul class="list-unstyled">
+                    <li class="mb-2">
+                        <a href="#" id="models" class="d-flex align-items-center link-dark text-decoration-none">
+                            <i class="bi bi-box me-3"></i>
+                            <span class="fs-5 fw-semibold">All Models</span>
+                        </a>
+                    </li>
+                    <li class="mb-2">
+                        <a href="#" id="publishers" class="d-flex align-items-center link-dark text-decoration-none">
+                            <i class="bi bi-person me-3"></i>
+                            <span class="fs-5 fw-semibold">All Publishers</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <!-- Main -->
+        <div style="text-align: center; padding-top: 20px;">
+            <h2 style="color: orange;">Welcome to AI Passport</h2>
+            <p class="text-center">AI Passport provides a centralized platform where you can search and explore a vast collection of pre-trained machine learning & deep learning models that are readily deployable.</p>
+        </div>        
+        <hr>
+        
+              
+          <div class="container" style="margin-bottom: 20px;">
+            <!-- Content here -->
+            {% for cat in task %}
+                <h3><i class="bi bi-image text-orange "></i> {{ cat}}</h3>
+                    <div class="container">
+                        <div class="row g-2">
+                            <div class="container" style="margin-bottom: 20px;">
+                                <!-- <h3> Segmentation Experiments</h3>    -->
+                                <div class="container">
+                                    <div class="row g-2">
+                                        {% for e in experiments %}
+                                            {% spaceless %}
+                                                {% if cat|striptags  == e.task %}        
+                                                <div class="col-3">
+                                                    <a href="/segmentation/{{ e.name }}" class="rounded border card text-center" style="text-decoration: none; color: black;">
+                                                        <div class="card-body" style="position: relative;">
+                                                            <h5 class="card-title">{{ e.name_preview }}</h5>
+                                                            <div class="row">
+                                                                <div class="col-4 p-1">
+                                                                    
+                                                                        <img src="data:image/png;base64,{{ e.qr_code }}" alt="QR Code" style="width: 100%; height: auto; min-width: 100px; min-height: 100px;">
+                                                                    
+                                                                </div>
+                                                                <div class="col-8">
+                                                                    <p class="card-text p-1"style="text-align: left;"></p>
+                                                                    <p class="card-subtitle  text-muted"style="text-align: left;">Publisher: {{ e.publisher }}</p>
+                                                                    <p class="card-subtitle  text-muted" style="text-align: left;"><span class="small">Last Update: {{ e.last_update }}</span></p>
+                                                                    <p class="card-subtitle  text-muted" style="text-align: left;"><span class="small">  {{e.learning_problem}}</span></p>
+                                                                    <p class="card-subtitle" style="position: absolute; top: 1; bottom: 0; right: 0;"><span class="small">Version: {{ e.version }}</span></p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </a>
+                                                </div>
+                                                {% endif %}  
+                                            {% endspaceless %}   
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <br>
+            {% endfor %}    
+          </div>
+
+          <footer class="bg-secondary text-light py-3" style="position: fixed; left: 0; bottom: 80px; width: 100%; z-index: 1;">
+            <div class="container-fluid">
+              <div class="row">
+                <div class="col-md-12 bg-secondary">
+                    <div class="text-center" >
+                        <img src="{% static 'images/eu_flag_300x200.png' %}" class="rounded" style="display: inline-block; vertical-align: middle;" alt="...">
+                        <span style="display: inline-block; white-space: pre-line;  vertical-align: middle; text-align: left;">ProCAncer-I has received funding from the European Union’s Horizon 2020 research and
+                             innovation programme under grant agreement 
+                            No 952159 http://ec.europa.eu/digital-single-market/ehealth</span>
+                    </div>        
+                </div>
+              </div>
+            </div>
+          </footer>
+          
+          <footer class="bg-dark text-light py-3" style="position: fixed; left: 0; bottom: 0; width: 100%; z-index: 2;">
+            <div class="container">
+              <p class="text-center mb-0">© ProstateNET & ProCAncer-I All rights reserved</p>
+              
+                <a href="https://www.forth.gr/_gfx/pdf/ConditionofUseITE_EN.pdf" target="_blank" rel="noopener"><p class="text-center mb-0">Conditions of Use</a>
+                |
+                <a href="https://www.forth.gr/_gfx/pdf/PrivacyPolicy_EN.pdf" target="_blank" rel="noopener">Privacy Policy</p> </a>
+            </div>
+          </footer>
+          
+    
+        <!-- JavaScript -->
+        <script src="{% static 'js/bootstrap.bundle.min.js' %}"  crossorigin="anonymous"></script>
+
+    </body>
+</html>

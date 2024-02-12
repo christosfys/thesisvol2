@@ -1,0 +1,844 @@
+from multiprocessing.spawn import prepare
+from django.shortcuts import render
+import os
+import datetime
+import requests
+import shutil
+from django.conf import settings
+from django.http import HttpResponse, FileResponse
+from django.http import StreamingHttpResponse
+import json
+import re
+import mlflow
+import mlflow.tracking
+from mlflow.tracking import MlflowClient
+from . models import Task_Category
+import qrcode
+import base64
+import io
+
+
+os.environ['GIT_PYTHON_REFRESH'] = 'quiet'
+os.environ['AWS_ACCESS_KEY_ID'] = 'admin'
+os.environ['AWS_SECRET_ACCESS_KEY'] = 'admin8888'
+os.environ['MLFLOW_TRACKING_URI'] = 'http://195.130.121.234:8085/'
+os.environ['MLFLOW_S3_ENDPOINT_URL'] = 'http://195.130.121.234:8089/'
+
+# Create an instance of the MlflowClient class
+client = mlflow.tracking.MlflowClient()
+
+# Views
+
+def homepage(request):
+    tasks = Task_Category.objects.all()
+    # Retrieve the list of experiments and runs from the MLflow server
+    experiments = client.search_experiments()
+    filtered_experiments = []
+    filtered_models = []
+    # runs = client.search_runs(experiment_ids=[e.experiment_id for e in experiments])
+
+    # model = client.get_registered_model('DVC_Mlflow')
+    models = client.search_registered_models()
+    for t in tasks:
+        for model in models:
+            if model.tags.get('Task') == str(t):
+                filtered_experiments.append(model)
+                model = client.get_registered_model(model.name)
+                # author = model.tags.get('author')
+                all_tags = model.tags
+                # print(all_tags)
+                last_updated_timestamp = model.last_updated_timestamp
+                last_updated_datetime = datetime.datetime.fromtimestamp(last_updated_timestamp/1000.0)
+                last_updated_str = last_updated_datetime.strftime('%Y-%m-%d ')
+                latest_version = model.latest_versions[0]
+                version = latest_version.version
+                publisher = latest_version.tags.get('publisher')
+                qr_code = latest_version.tags.get('Git repo')
+                qr = qrcode.QRCode(
+                        version=1,
+                        box_size=10,
+                        border=5)
+                qr.add_data(qr_code)
+                qr.make(fit=True)
+                img = qr.make_image(fill='black', back_color='white')
+                # Convert PIL.Image to bytes
+                byte_stream = io.BytesIO()
+                img.save(byte_stream, format='PNG')
+                byte_stream.seek(0)
+                image_bytes = byte_stream.getvalue()
+                b64 = base64.b64encode(image_bytes).decode("utf-8")
+                name_preview = latest_version.tags.get('Name')
+                print(model.name)
+                print(name_preview)
+                learning_prob = latest_version.tags.get('Learning Problem')
+                filtered_models.append({
+                'name': model.name,
+                'name_preview': name_preview,
+                'qr_code': b64,
+                'learning_problem': learning_prob,
+                'publisher': publisher,
+                'version': version,
+                'last_update': last_updated_str,
+                'task': model.tags.get('Task')
+            })
+    context={
+        'task':tasks,
+        'experiments': filtered_models, 
+    }
+    return render(request,"base.html",context)
+
+def download_model(request,model_name):
+    # print(model_name)
+    model = client.get_registered_model(model_name)
+    latest_version = model.latest_versions[0]
+    repo_url = latest_version.tags.get('Git repo')
+    repo_name = os.path.basename(repo_url)
+    # print(repo_url)
+    print(repo_name)
+    repo_name_zip = repo_name + "-master.zip"
+    file_path_zip = repo_name + ".zip" 
+    download_url = f"{repo_url}/-/archive/master/{repo_name_zip}"
+    response = requests.get(download_url, stream=True)
+
+    if response.status_code == 200:
+        # Create a directory for the extracted files
+        dir_path = os.path.join(settings.MEDIA_ROOT, 'models_download')
+        os.makedirs(dir_path, exist_ok=True)
+        
+        # Save the zip file to the server
+        zip_file_path = os.path.join(dir_path, '{file_path_zip}')
+        with open(zip_file_path, "wb") as f:
+            response.raw.decode_content = True
+            shutil.copyfileobj(response.raw, f)
+
+        # Return the file as a response
+        def file_iterator(file_name, chunk_size=8192):
+            with open(file_name, "rb") as f:
+                while True:
+                    chunk = f.read(chunk_size)
+                    if not chunk:
+                        break
+                    yield chunk
+
+                   
+        file_path = os.path.join(dir_path, file_path_zip)
+        file_size = os.path.getsize(file_path)
+        response = StreamingHttpResponse(file_iterator(file_path))
+        response['Content-Length'] = file_size
+        response['Content-Disposition'] = 'attachment; filename="{}"'.format(file_path_zip)
+        return response
+    else:
+        return HttpResponse("Failed to download file. Status code: {}".format(response.status_code))
+   
+
+def category(request):
+    # Retrieve the list of experiments and runs from the MLflow server
+    experiments = client.search_experiments()
+    filtered_experiments = []
+    filtered_models = []
+    # runs = client.search_runs(experiment_ids=[e.experiment_id for e in experiments])
+
+    # model = client.get_registered_model('DVC_Mlflow')
+    models = client.search_registered_models()
+    for model in models:
+        if model.tags.get('task') == 'Segmentation':
+            filtered_experiments.append(model)
+            model = client.get_registered_model(model.name)
+            # author = model.tags.get('author')
+            all_tags = model.tags
+           
+            last_updated_timestamp = model.last_updated_timestamp
+            last_updated_datetime = datetime.datetime.fromtimestamp(last_updated_timestamp/1000.0)
+            last_updated_str = last_updated_datetime.strftime('%Y-%m-%d ')
+            latest_version = model.latest_versions[0]
+            version = latest_version.version
+            author = latest_version.tags.get('author')
+            description = latest_version.description
+            filtered_models.append({
+            'name': model.name,
+            'description': description,
+            'author': author,
+            'version': version,
+            'last_update': last_updated_str
+        })
+    context = {
+        'experiments': filtered_models,        
+    }
+
+    # print(runs)
+    return render(request,"category.html", context)
+
+def model_details(request, model_name):
+    run_names = []
+    fold0 = {}
+    dicom2nifty_info = {}
+    preprocess_info = {}
+    prepare_info = {}
+    train_info = {}
+    model_info = {}
+    dataset_info = {}
+    model = client.get_registered_model(model_name)
+    latest_version = model.latest_versions[0]
+    all_keys = list(latest_version.tags.keys())
+    standard_keys = ['Algorithm','Ethical concerns','Learning Method','Learning Problem','Name','Risk Assessment','Storage','author','Metric','Task','Framework','git repo']
+    other_keys = [key for key in all_keys if key not in standard_keys]
+    # Date
+    release_date_timestamp = model.last_updated_timestamp
+    release_date_timestamp = datetime.datetime.fromtimestamp(release_date_timestamp/1000.0)
+    release_date_timestamp = release_date_timestamp.strftime('%Y-%m-%d ')
+    
+    model_info['Download_Name'] = model.name
+    model_info['Name'] = latest_version.tags.get('Name')
+    model_info['Author'] = latest_version.tags.get('Author')
+    model_info['Version'] = latest_version.version
+    model_info['Release Date'] = release_date_timestamp
+    model_info['Model UUID'] = latest_version.tags.get('model_uuid')
+    model_info['Description'] = latest_version.tags.get('description')
+    model_info['Publisher'] = latest_version.tags.get('publisher')
+    model_info['Learning Problem'] = latest_version.tags.get('Learning Problem')
+    model_info['Learning Method'] = latest_version.tags.get('Learning Method')
+    model_info['Algorithm'] = latest_version.tags.get('unet')
+    model_info['Framework'] = latest_version.tags.get('framework')
+    model_info['Framework'] = model_info['Framework'].replace('$', '-')
+    model_info['Model Hyperparameters'] = ', '.join([f"{key}:{latest_version.tags[key]}" for key in other_keys])
+    model_info['License'] = "NC-SA-CC-BY"
+    model_info['Storage'] = latest_version.tags.get('Storage')
+    model_info['Ethical Concerns'] = latest_version.tags.get('Ethical concerns')
+    model_info['Risk Assessment'] = latest_version.tags.get('Risk Assessment')
+    model_info['Experiment Name'] = latest_version.tags.get('Experiment_name')
+    model_info['Git Repo'] = latest_version.tags.get('Git repo')
+    model_info['Metric Score'] = latest_version.tags.get('Metric score')
+    model_info['Input Channels'] = latest_version.tags.get('Number_input_channels')
+    model_info['Number Labels'] = latest_version.tags.get('Number_labels')
+    model_info['Activation'] = latest_version.tags.get('activation')
+    model_info['Layer Activation'] = latest_version.tags.get('layer_activation')
+    model_info['Batch Size'] = latest_version.tags.get('batch_size')
+    model_info['Device'] = latest_version.tags.get('device')
+    model_info['Epoch'] = latest_version.tags.get('epoch')
+    model_info['Filters'] = latest_version.tags.get('filters')
+    model_info['Loss'] = latest_version.tags.get('loss')
+    model_info['Metric'] = latest_version.tags.get('metric')
+    model_info['Optimiser'] = latest_version.tags.get('optimiser')
+    # model_info['Pipeline'] = 
+    # identifier = model_info['Storage'].split("/")[4]
+    # Load the run with the specified ID
+    # print(model_info['Model Hyperparameters'])
+    # Split the string into a list of key-value pairs
+    # hyperparams = model_info['Model Hyperparameters'].split(", ")
+
+    hyperparameters_dict = {}
+    for key in other_keys:
+        value = latest_version.tags.get(key)
+        if value:
+            if "[" in value and "]" in value:
+                value = [int(x) for x in value.strip("[]").split(", ")]
+            elif value == "True":
+                value = True
+            elif value == "False":
+                value = False
+            else:
+                value = str(value)
+            hyperparameters_dict[key] = value
+
+    model_info['Model Hyperparameters'] = hyperparameters_dict
+    # print(model_info['Model Hyperparameters'] )
+
+    # Experiment ID
+    mlflow_experiment_id = latest_version.tags.get('Experiment_run_id')
+  
+    run = client.get_run(mlflow_experiment_id)
+    # Dicom2nifty
+    dataset_info['Dicom2nifty ID'] = run.data.tags["DICOM2NIFTY_run_id"]
+    dicom2nifty_run = client.get_run(dataset_info['Dicom2nifty ID'])
+    dicom2nifty_dataset = dicom2nifty_run.data.tags["depdata"].split("$")
+    dicom2nifty_info['Input Dataset ID'] = dicom2nifty_dataset[1]
+    dicom2nifty_info['Input Dataset Path'] = dicom2nifty_dataset[0]
+    dicom2nifty_source = dicom2nifty_run.data.tags["depcode"].split("$")
+    dicom2nifty_info['Source Code ID'] = dicom2nifty_source[1]
+    dicom2nifty_info['Source Code Path'] = dicom2nifty_source[0]
+    dicom2nifty_info['task'] = dicom2nifty_run.data.tags["task"]
+    dicom2nifty_out = dicom2nifty_run.data.tags["out"].split("$")
+    dicom2nifty_info['Output Dataset ID'] = dicom2nifty_out[1]
+    dicom2nifty_info['Output Dataset Path'] = dicom2nifty_out[0]
+    dicom2nifty_info['framework'] = dicom2nifty_run.data.tags["framework"]
+    dicom2nifty_info['params'] = dicom2nifty_run.data.params
+    # Preprocess
+    dataset_info['Preprocess ID'] = run.data.tags["Preprocess_run_id"]
+    preprocess_run = client.get_run(dataset_info['Preprocess ID'])
+    preprocess_dataset = preprocess_run.data.tags["depdata"].split("$")
+    preprocess_info['Input Dataset ID'] = preprocess_dataset[1]
+    preprocess_info['Input Dataset Path'] = preprocess_dataset[0]
+    preprocess_source = preprocess_run.data.tags["depcode"].split("$")
+    preprocess_info['Source Code ID'] = preprocess_source[1]
+    preprocess_info['Source Code Path'] = preprocess_source[0]
+    preprocess_info['task'] = preprocess_run.data.tags["task"]
+    preprocess_out = preprocess_run.data.tags["out"].split("$")
+    preprocess_info['Output Dataset ID'] = preprocess_out[1]
+    preprocess_info['Output Dataset Path'] = preprocess_out[0]
+    preprocess_info['params'] = preprocess_run.data.params
+    # Prepare
+    dataset_info['Prepare ID'] = run.data.tags["Prepare_run_id"]
+    prepare_run = client.get_run(dataset_info['Prepare ID'])
+    prepare_dataset = prepare_run.data.tags["depdata"].split("$")
+    prepare_info['Input Dataset ID'] = prepare_dataset[1]
+    prepare_info['Input Dataset Path'] = prepare_dataset[0]
+    prepare_source = prepare_run.data.tags["depcode"].split("$")
+    prepare_info['Source Code ID'] = prepare_source[1]
+    prepare_info['Source Code Path'] = prepare_source[0]
+    prepare_info['task'] = prepare_run.data.tags["task"]
+    preprare_out = prepare_run.data.tags["out"].split("$")
+    prepare_info['Output Dataset ID'] = preprare_out[1]
+    prepare_info['Output Dataset Path']= preprare_out[0]
+    prepare_info['params'] = prepare_run.data.params
+    # Train
+    dataset_info['Train ID'] = run.data.tags["Train_run_id"]
+    train_run = client.get_run(dataset_info['Train ID'])
+    train_dataset = train_run.data.tags["depdata"].split("$")
+    train_info['Input Dataset ID'] = train_dataset[1]
+    train_info['Input Dataset Path'] = train_dataset[0]
+    train_source = train_run.data.tags["depcode"].split("$")
+    train_info['Source Code ID'] = train_source[1]
+    train_info['Source Code Path'] = train_source[0]
+    train_info['task'] = train_run.data.tags['task']
+    train_out = train_run.data.tags['out'].split("$")
+    train_info['Output Dataset ID'] = train_out[1]
+    train_info['Output Dataset Path'] = train_out[0]
+    train_info['params'] = train_run.data.params
+    # Fold 0 
+    dataset_info['Kfold0'] = run.data.tags["Train_fold0_run_id"]
+    kfold0_run = client.get_run( dataset_info['Kfold0'])
+    fold0 = kfold0_run.data.tags['mlflow.source.git.commit']
+    dataset_info['Prepare ID'] = run.data.tags["Prepare_run_id"]
+    dataset_info['Preprocess ID'] = run.data.tags["Preprocess_run_id"]
+    dataset_info['Train ID'] = run.data.tags["Train_run_id"]
+    dataset_info['Train Fold0 ID'] = run.data.tags["Train_fold0_run_id"]
+    dataset_info['Train Fold1 ID'] = run.data.tags["Train_fold1_run_id"]
+    dataset_creation_date = run.data.tags["dataset_created"].split(" ")
+    dataset_info['Dataset Creation'] = dataset_creation_date[0]
+    dataset_info['Dataset Author'] = run.data.tags["dataset_Author"]
+    dataset_info['Dataset Name'] = run.data.tags["dataset_name"]
+    dataset_info['Dataset Desc'] = run.data.tags["dataset_desc"]
+    dataset_info['Dataset Endpoint'] = run.data.tags["dataset_endpointurl"]
+    dataset_info['Dataset Manuf'] = run.data.tags["dataset_manufacturer"]
+    dataset_info['Dataset Mask'] = run.data.tags["dataset_mask"]
+    dataset_info['Dataset MD5'] = run.data.tags["dataset_md5"]
+    dataset_info['Dataset Files'] = run.data.tags["dataset_nfiles"]
+    dataset_info['Dataset Use Cases'] = run.data.tags["dataset_number_of_cases"]
+    dataset_info['Dataset Path'] = run.data.tags["dataset_path"]
+    dataset_info['Dataset Purpose'] = run.data.tags["dataset_purpose"]
+    dataset_info['Dataset Size'] = round(int(run.data.tags["dataset_size"])/(1024 * 1024))
+    dataset_info['Dataset Type'] = run.data.tags["dataset_type"]
+    dataset_info['Dataset URL'] = run.data.tags["dataset_url"]
+    dataset_info['Dataset Anonymized'] = run.data.tags["dataset_anonymized"]
+    dataset_info['Dataset Images'] = run.data.tags["dataset_sequence"]
+    dataset_info['Dataset Provenance'] = run.data.tags["dataset_Provenance"]
+    dataset_info['Dataset Pipeline'] = run.data.tags["pipeline"]
+    
+    
+    # dataset_info['Dataset Files'] = run.data.tags["dataset_nfiles"]
+    # dataset_info['Dataset Files'] = run.data.tags["dataset_nfiles"]
+    # dataset_info['Dataset Files'] = run.data.tags["dataset_nfiles"]
+    # experiment_name = latest_version.tags.get('Experiment_name')
+
+    # parent_run_id = latest_version.run_id
+    # run = client.get_run(parent_run_id)
+    # experiment_id = run.info.experiment_id
+    
+    # # search for all runs in the experiment
+    # runs = client.search_runs(experiment_id)
+    # for run in runs:
+    #     if "mlflow.parentRunId" not in run.data.tags or run.data.tags["mlflow.parentRunId"] is None:
+    #         run_list = get_run_sequence(client, run.info.run_id)
+    #         run_tree = list(dict.fromkeys(run_list))
+
+    # for run_id in run_tree:
+    #     run = client.get_run(run_id)
+    #     run_dict = run.to_dictionary()
+    #     run_json = json.dumps(run_dict)
+    #     data = json.loads(run_json)
+    #     final_json = {}
+        
+    #     ## Create Human-readable keys
+    #     # dataset_md5 -> ID
+    #     key_path = ["data", "tags", "dataset_md5"]
+    #     id_dataset_m5 = "ID"
+    #     keys_to_check = ["dataset_md5"]
+    #     # check if each key is in the data dictionary
+    #     for key in keys_to_check:
+    #         if key in data["data"]["tags"]:
+    #             rename_key(data, key_path, id_dataset_m5)
+    #             run_json = json.dumps(data)  # update the JSON string
+    #             run_dict = json.loads(run_json)  # parse the updated JSON string
+    #             final_json['ID'] = run_dict['data']['tags']['ID'] 
+    #         else:
+    #             #print(f"{key} does not exist in data")
+    #             pass
+    #     # dataset_desc -> Description
+    #     key_path = ["data", "tags", "dataset_desc"]
+    #     description_dataset_desc = "Description"
+    #     keys_to_check = ["dataset_desc"]
+    #     for key in keys_to_check:
+    #         if key in data["data"]["tags"]:
+    #             #print(f"{key} exists in data")
+    #             rename_key(data, key_path, description_dataset_desc)
+    #             run_json = json.dumps(data)  # update the JSON string
+    #             run_dict = json.loads(run_json)  # parse the updated JSON string
+    #             final_json['Description'] = run_dict['data']['tags']['Description']
+    #             #print(run_json)
+    #         else:
+    #             #print(f"{key} does not exist in data")
+    #             pass
+    #     # dataset_purpose -> Purpose
+    #     key_path = ["data", "tags", "dataset_purpose"]
+    #     purpose_dataset_purpose = "Purpose"
+    #     keys_to_check = ["dataset_purpose"]
+    #     for key in keys_to_check:
+    #         if key in data["data"]["tags"]:
+    #             #print(f"{key} exists in data")
+    #             rename_key(data, key_path, purpose_dataset_purpose)
+    #             run_json = json.dumps(data)  # update the JSON string
+    #             run_dict = json.loads(run_json)  # parse the updated JSON string
+    #             final_json['Purpose'] = run_dict['data']['tags']['Purpose']
+    #             #print(run_json)
+    #         else:
+    #             #print(f"{key} does not exist in data")
+    #             pass
+    #     # dataset_Provenance -> Publisher
+    #     key_path = ["data", "tags", "dataset_Provenance"]
+    #     publisher_dataset_provenance = "Publisher"
+    #     keys_to_check = ["dataset_Provenance"]
+    #     for key in keys_to_check:
+    #         if key in data["data"]["tags"]:
+    #             #print(f"{key} exists in data")
+    #             rename_key(data, key_path, publisher_dataset_provenance)
+    #             run_json = json.dumps(data)  # update the JSON string
+    #             run_dict = json.loads(run_json)  # parse the updated JSON string
+    #             final_json['Publisher'] = run_dict['data']['tags']['Publisher']
+    #             #print(run_json)
+    #         else:
+    #             #print(f"{key} does not exist in data")
+    #             pass
+    #     # dataset_Author -> Creator
+    #     key_path = ["data", "tags", "dataset_Author"]
+    #     creator_dataset_author = "Creator"
+    #     keys_to_check = ["dataset_Author"]
+    #     for key in keys_to_check:
+    #         if key in data["data"]["tags"]:
+    #             #print(f"{key} exists in data")
+    #             rename_key(data, key_path, creator_dataset_author)
+    #             run_json = json.dumps(data)  # update the JSON string
+    #             run_dict = json.loads(run_json)  # parse the updated JSON string
+    #             final_json['Creator'] = run_dict['data']['tags']['Creator']
+    #             #print(run_json)
+    #         else:
+    #             #print(f"{key} does not exist in data")
+    #             pass
+    #     # dataset_path -> Path
+    #     key_path = ["data", "tags", "dataset_path"]
+    #     path_dataset_path = "Path"
+    #     keys_to_check = ["dataset_path"]
+    #     for key in keys_to_check:
+    #         if key in data["data"]["tags"]:
+    #             #print(f"{key} exists in data")
+    #             rename_key(data, key_path, path_dataset_path)
+    #             run_json = json.dumps(data)  # update the JSON string
+    #             run_dict = json.loads(run_json)  # parse the updated JSON string
+    #             final_json['Path'] = run_dict['data']['tags']['Path']
+    #             #print(run_json)
+    #         else:
+    #             #print(f"{key} does not exist in data")
+    #             pass
+    #     # dataset_type -> Data Type
+    #     key_path = ["data", "tags", "dataset_type"]
+    #     data_type_dataset_type = "Data Type"
+    #     keys_to_check = ["dataset_type"]
+    #     for key in keys_to_check:
+    #         if key in data["data"]["tags"]:
+    #             #print(f"{key} exists in data")
+    #             rename_key(data, key_path, data_type_dataset_type)
+    #             run_json = json.dumps(data)  # update the JSON string
+    #             run_dict = json.loads(run_json)  # parse the updated JSON string
+    #             final_json['Data Type'] = run_dict['data']['tags']['Data Type']
+    #             #print(run_json)
+    #         else:
+    #             #print(f"{key} does not exist in data")
+    #             pass
+    #     # dataset_size -> Size
+    #     key_path = ["data", "tags", "dataset_size"]
+    #     size_dataset_size = "Size"
+    #     keys_to_check = ["dataset_size"]
+    #     for key in keys_to_check:
+    #         if key in data["data"]["tags"]:
+    #             #print(f"{key} exists in data")
+    #             update_key(data, key_path, str(int(data['data']['tags']['dataset_size'])/(1024 * 1024))+" MB")
+    #             rename_key(data, key_path, size_dataset_size)
+    #             run_json = json.dumps(data)  # update the JSON string
+    #             run_dict = json.loads(run_json)  # parse the updated JSON string
+    #             final_json['Size'] = run_dict['data']['tags']['Size']
+    #             #print(run_json)
+    #         else:
+    #             #print(f"{key} does not exist in data")
+    #             pass
+    #     # dataset_nfiles  -> Number of Files
+    #     key_path = ["data", "tags", "dataset_nfiles"]
+    #     num_files_dataset_nfiles = "Number of Files"
+    #     keys_to_check = ["dataset_nfiles"]
+    #     for key in keys_to_check:
+    #         if key in data["data"]["tags"]:
+    #             #print(f"{key} exists in data")
+    #             rename_key(data, key_path, num_files_dataset_nfiles)
+    #             run_json = json.dumps(data)  # update the JSON string
+    #             run_dict = json.loads(run_json)  # parse the updated JSON string
+    #             final_json['Number of Files'] = run_dict['data']['tags']['Number of Files']
+    #             #print(run_json)
+    #         else:
+    #             #print(f"{key} does not exist in data")
+    #             pass
+    #     # dataset_endpointurl -> Location
+    #     key_path = ["data", "tags", "dataset_endpointurl"]
+    #     location_dataset_endpointurl = "Location"
+    #     keys_to_check = ["dataset_endpointurl"]
+    #     for key in keys_to_check:
+    #         if key in data["data"]["tags"]:
+    #             #print(f"{key} exists in data")
+    #             rename_key(data, key_path, location_dataset_endpointurl)
+    #             run_json = json.dumps(data)  # update the JSON string
+    #             run_dict = json.loads(run_json)  # parse the updated JSON string
+    #             final_json['Location'] = run_dict['data']['tags']['Location']
+    #             #print(run_json)
+    #         else:
+    #             #print(f"{key} does not exist in data")
+    #             pass
+    #     # dataset_url -> Storage
+    #     key_path = ["data", "tags", "dataset_url"]
+    #     storage_dataset_url = "Storage"
+    #     keys_to_check = ["dataset_url"]
+    #     for key in keys_to_check:
+    #         if key in data["data"]["tags"]:
+    #             #print(f"{key} exists in data")
+    #             rename_key(data, key_path, storage_dataset_url)
+    #             run_json = json.dumps(data)  # update the JSON string
+    #             run_dict = json.loads(run_json)  # parse the updated JSON string
+    #             final_json['Storage'] = run_dict['data']['tags']['Storage']
+    #             #print(run_json)
+    #         else:
+    #             #print(f"{key} does not exist in data")
+    #             pass
+    #     # dataset_manufacturer -> Dataset Manufacturer
+    #     key_path = ["data", "tags", "dataset_manufacturer"]
+    #     ds_manuf_dataset_manufacturer = "Manufacturer"
+    #     keys_to_check = ["dataset_manufacturer"]
+    #     for key in keys_to_check:
+    #         if key in data["data"]["tags"]:
+    #             #print(f"{key} exists in data")
+    #             rename_key(data, key_path, ds_manuf_dataset_manufacturer)
+    #             run_json = json.dumps(data)  # update the JSON string
+    #             run_dict = json.loads(run_json)  # parse the updated JSON string
+    #             final_json['Manufacturer'] = run_dict['data']['tags']['Manufacturer']
+    #             #print(run_json)
+    #         else:
+    #             #print(f"{key} does not exist in data")
+    #             pass
+    #     # dataset_mask -> Dataset Mask
+    #     key_path = ["data", "tags", "dataset_mask"]
+    #     ds_mask_dataset_mask = "Mask"
+    #     keys_to_check = ["dataset_mask"]
+    #     for key in keys_to_check:
+    #         if key in data["data"]["tags"]:
+    #             #print(f"{key} exists in data")
+    #             rename_key(data, key_path, ds_mask_dataset_mask)
+    #             run_json = json.dumps(data)  # update the JSON string
+    #             run_dict = json.loads(run_json)  # parse the updated JSON string
+    #             final_json['Mask'] = run_dict['data']['tags']['Mask']
+    #             run_json = json.dumps(final_json)
+    #             #print(run_json)
+    #         else:
+    #             #print(f"{key} does not exist in data")
+    #             pass
+    #     # run_id -> ID
+    #     key_path = ["info", "run_id"]
+    #     id_d2n_run_id = "Run ID"
+    #     keys_to_check = ["run_id"]
+    #     for key in keys_to_check:
+    #         if key in data["info"]:
+    #             #print(f"{key} exists in data")
+    #             rename_key(data, key_path, id_d2n_run_id)
+    #             run_json = json.dumps(data)  # update the JSON string
+    #             run_dict = json.loads(run_json)  # parse the updated JSON string
+    #             final_json['Run ID'] = run_dict['info']['Run ID']
+    #             run_json = json.dumps(final_json)
+    #             #print(run_json)
+    #         else:
+    #             #print(f"{key} does not exist in data")
+    #             pass
+    #     # depdata -> Input Dataset ID
+    #     key_path = ["data", "tags","depdata"]
+    #     input_data_id_depdata = "Input Dataset ID"
+    #     keys_to_check = ["depdata"]
+    #     for key in keys_to_check:
+    #         if key in data["data"]["tags"]:
+    #             #print(f"{key} exists in data")
+    #             rename_key(data, key_path, input_data_id_depdata)
+    #             run_json = json.dumps(data)  # update the JSON string
+    #             run_dict = json.loads(run_json)  # parse the updated JSON string
+    #             parts = run_dict['data']['tags']['Input Dataset ID'].split(",")
+    #             if(len(parts)<=1):
+    #                 input_data = parts[0].split("$")
+    #                 final_json['Input Dataset Path'] = '/'+ input_data[0].replace("[", "")
+    #                 final_json['Input Dataset ID'] = input_data[1].replace("]", "")
+    #             if(len(parts)>1):
+    #                 for count, value in enumerate(parts):
+    #                     input_data = value.split('$')
+    #                     if(count==0):
+    #                         final_json['Input Dataset '+str(count+1)+' Path'] = '/'+ input_data[0].replace("[", "")
+    #                         final_json['Input Dataset '+str(count+1)+' ID'] = input_data[1]
+    #                     else:
+    #                         final_json['Input Dataset '+str(count+1)+' Path'] = '/'+ input_data[0]
+    #                         final_json['Input Dataset '+str(count+1)+' ID'] = input_data[1]
+    #                     if(count==len(parts)-1):
+    #                         final_json['Input Dataset '+str(count+1)+' ID'] = input_data[1].replace("]", "")
+    #     # depcode -> Source Code ID, Source Code Path
+    #     key_path = ["data", "tags","depcode"]
+    #     input_data_id_depcode = "Source Code ID"
+    #     keys_to_check = ["depcode"]
+    #     for key in keys_to_check:
+    #         if key in data["data"]["tags"]:
+    #             #print(f"{key} exists in data")
+    #             rename_key(data, key_path, input_data_id_depcode)
+    #             run_json = json.dumps(data)  # update the JSON string
+    #             run_dict = json.loads(run_json)  # parse the updated JSON string
+    #             parts = run_dict['data']['tags']['Source Code ID'].split(",")
+    #             if(len(parts)<=1):
+    #                 input_data = parts[0].split("$")
+    #                 final_json['Source Code Path'] = '/'+ input_data[0].replace("[", "")
+    #                 final_json['Source Code ID'] = input_data[1].replace("]", "")
+    #             if(len(parts)>1):
+    #                 for count, value in enumerate(parts):
+    #                     input_data = value.split('$')
+    #                     if(count==0):
+    #                         final_json['Source Code '+str(count+1)+' Path'] = '/'+ input_data[0].replace("[", "")
+    #                         final_json['Source Code '+str(count+1)+' ID'] = input_data[1]
+    #                     else:
+    #                         final_json['Source Code '+str(count+1)+' Path'] = '/'+ input_data[0]
+    #                         final_json['Source Code '+str(count+1)+' ID'] = input_data[1]
+    #                     if(count==len(parts)-1):
+    #                         final_json['Source Code '+str(count+1)+' ID'] = input_data[1].replace("]", "")
+    #     # out -> Output Dataset ID, Output Dataset Path
+    #     key_path = ["data", "tags","out"]
+    #     output_data_id_out = "Output Dataset ID"
+    #     keys_to_check = ["out"]
+    #     for key in keys_to_check:
+    #         if key in data["data"]["tags"]:
+    #             #print(f"{key} exists in data")
+    #             rename_key(data, key_path, output_data_id_out)
+    #             run_json = json.dumps(data)  # update the JSON string
+    #             run_dict = json.loads(run_json)  # parse the updated JSON string
+    #             parts = run_dict['data']['tags']['Output Dataset ID'].split(",")
+    #             if(len(parts)<=1):
+    #                 input_data = parts[0].split("$")
+    #                 final_json['Output Dataset Path'] = '/'+ input_data[0].replace("[", "")
+    #                 final_json['Output Dataset ID'] = input_data[1].replace("]", "")
+    #             if(len(parts)>1):
+    #                 for count, value in enumerate(parts):
+    #                     input_data = value.split('$')
+    #                     if(count==0):
+    #                         final_json['Output Dataset '+str(count+1)+' Path'] = '/'+ input_data[0].replace("[", "")
+    #                         final_json['Output Dataset '+str(count+1)+' ID'] = input_data[1]
+    #                     else:
+    #                         final_json['Output Dataset '+str(count+1)+' Path'] = '/'+ input_data[0]
+    #                         final_json['Output Dataset '+str(count+1)+' ID'] = input_data[1]
+    #                     if(count==len(parts)-1):
+    #                         final_json['Output Dataset '+str(count+1)+' ID'] = input_data[1].replace("]", "")
+    #             # final_json['Input Dataset Path'] = '/'+ parts[0]
+    #             # final_json['Input Dataset ID'] = parts[1]
+    #             run_json = json.dumps(final_json)
+    #             #print(run_json)
+    #         else:
+    #             #print(f"{key} does not exist in data")
+    #             pass
+    #     # user_id -> User
+    #     key_path = ["info", "user_id"]
+    #     user_userid = "User"
+    #     keys_to_check = ["user_id"]
+    #     for key in keys_to_check:
+    #         if key in data["info"]:
+    #             #print(f"{key} exists in data")
+    #             rename_key(data, key_path, user_userid)
+    #             run_json = json.dumps(data)  # update the JSON string
+    #             run_dict = json.loads(run_json)  # parse the updated JSON string
+    #             final_json['User'] = run_dict['info']['User']
+    #             # #print(run_json)
+    #         else:
+    #             #print(f"{key} does not exist in data")
+    #             pass
+    #     # end_time -> Date
+    #     key_path = ["info", "end_time"]
+    #     user_userid = "Date"
+    #     keys_to_check = ["end_time"]
+    #     for key in keys_to_check:
+    #         if key in data["info"]:
+    #             #print(f"{key} exists in data")
+    #             rename_key(data, key_path, user_userid)
+    #             run_json = json.dumps(data)  # update the JSON string
+    #             run_dict = json.loads(run_json)  # parse the updated JSON string
+    #             last_updated_datetime = datetime.datetime.fromtimestamp(run_dict['info']['Date']/1000.0)
+    #             last_updated_str = last_updated_datetime.strftime('%Y-%m-%d %H:%M:%S')
+    #             final_json['Date'] = last_updated_str
+    #             # #print(run_json)
+    #         else:
+    #             #print(f"{key} does not exist in data")
+    #             pass
+
+
+    #     run_name = run.data.tags['mlflow.runName']
+        
+    #     if 'task' in run.data.tags:
+    #         task = run.data.tags['task']
+    #         run_names.append(task)
+    #         # do something with the 'task' value
+    #     else:
+    #         # 'task' key does not exist in the dictionary
+    #         run_names.append(run_name)
+        
+    #     final_json["Anonymized"] = "Yes"
+    #     final_json["License"] = "NC-SA-CC-BY"
+    #     run_json = json.dumps(final_json)
+    #     run_info.append(run_json)
+
+    # run_names.append('Model')
+    # run_tree.append('')
+    # run_info.append(json.dumps(model_info))
+    # # print(run_names)
+    # run_names[0] = 'Input Dataset'
+    # mylist = zip(run_names, run_tree, run_info)
+    # print(run_names)
+    context = {
+        'download_model': model_info['Download_Name'],
+        'model_name': model_info['Name'],
+        'model_version': model_info['Version'],
+        'model_publisher': model_info['Publisher'],
+        'model_uuid': model_info['Model UUID'],
+        'model_descr': model_info['Description'],
+        'model_license': model_info['License'],
+        'model_release_date': model_info['Release Date'],
+        'model_risk_assesment':  model_info['Risk Assessment'],
+        'model_learning_problem': model_info['Learning Problem'],
+        'model_learning_method': model_info['Learning Method'],
+        'model_ethical_con': model_info['Ethical Concerns'],
+        'model_git_repo': model_info['Git Repo'],
+        'model_metric_score': model_info['Metric Score'],
+        'model_input_ch': model_info['Input Channels'],
+        'model_number_labels': model_info['Number Labels'],
+        'model_activation': model_info['Activation'],
+        'model_hyperparameters': model_info['Model Hyperparameters'],
+        'model_algorithm': model_info['Algorithm'],
+        'model_layer_activation': model_info['Layer Activation'],
+        'model_batch_size':model_info['Batch Size'],
+        'model_framework': model_info['Framework'],
+        'model_implementation': fold0,
+        'model_device':  model_info['Device'],
+        'model_epoch': model_info['Epoch'],
+        'model_filters': model_info['Filters'],
+        'model_loss': model_info['Loss'],
+        'model_metric': model_info['Metric'],
+        'model_optimiser': model_info['Optimiser'],
+        'dataset_desc':  dataset_info['Dataset Desc'],
+        'dataset_author': dataset_info['Dataset Author'],
+        'dataset_name': dataset_info['Dataset Name'],
+        'dataset_endpoint': dataset_info['Dataset Endpoint'],
+        'dataset_manufacturer': dataset_info['Dataset Manuf'],
+        'dataset_creation_date': dataset_info['Dataset Creation'],
+        'dataset_mask': dataset_info['Dataset Mask'],
+        'dataset_md5': dataset_info['Dataset MD5'],
+        'dataset_files': dataset_info['Dataset Files'],
+        'dataset_use_cases': dataset_info['Dataset Use Cases'],
+        'dataset_path': dataset_info['Dataset Path'],
+        'dataset_purpose':  dataset_info['Dataset Purpose'],
+        'dataset_size': dataset_info['Dataset Size'],
+        'dataset_type': dataset_info['Dataset Type'],
+        'dataset_url': dataset_info['Dataset URL'],
+        'dataset_anonym': dataset_info['Dataset Anonymized'],
+        'dataset_images': dataset_info['Dataset Images'],
+        'dataset_provenance': dataset_info['Dataset Provenance'],
+        'dataset_pipeline':  dataset_info['Dataset Pipeline'],
+        'experiment_name':  model_info['Experiment Name'],
+        'dicom2nifty_id': dataset_info['Dicom2nifty ID'],
+        'dicom2nifty_input_dataset_id': dicom2nifty_info['Input Dataset ID'],
+        'dicom2nifty_input_dataset_path': dicom2nifty_info['Input Dataset Path'],
+        'dicom2nifty_source_code_id': dicom2nifty_info['Source Code ID'],
+        'dicom2nifty_source_code_path': dicom2nifty_info['Source Code Path'],
+        'dicom2nifty_task': dicom2nifty_info['task'],
+        'dicom2nifty_output_dataset_id': dicom2nifty_info['Output Dataset ID'],
+        'dicom2nifty_output_dataset_path': dicom2nifty_info['Output Dataset Path'],
+        'dicom2nifty_params': dicom2nifty_info['params'],
+        'preprocess_id': dataset_info['Preprocess ID'],
+        'preprocess_input_dataset_id': preprocess_info['Input Dataset ID'],
+        'preprocess_input_dataset_path': preprocess_info['Input Dataset Path'],
+        'preprocess_source_code_id': preprocess_info['Source Code ID'],
+        'preprocess_source_code_path': preprocess_info['Source Code Path'],
+        'preprocess_task': preprocess_info['task'],
+        'preprocess_output_dataset_id': preprocess_info['Output Dataset ID'],
+        'preprocess_output_dataset_path': preprocess_info['Output Dataset Path'],
+        'preprocess_params': preprocess_info['params'],
+        'prepare_id': dataset_info['Prepare ID'],
+        'prepare_input_dataset_id': prepare_info['Input Dataset ID'],
+        'prepare_input_dataset_path': prepare_info['Input Dataset Path'],
+        'prepare_source_code_id': prepare_info['Source Code ID'],
+        'prepare_source_code_path': prepare_info['Source Code Path'],
+        'prepare_task': prepare_info['task'],
+        'prepare_output_dataset_id': prepare_info['Output Dataset ID'],
+        'prepare_output_dataset_path': prepare_info['Output Dataset Path'],
+        'prepare_params': prepare_info['params'],
+        'train_id': dataset_info['Train ID'],
+        'train_input_dataset_id': train_info['Input Dataset ID'],
+        'train_input_dataset_path': train_info['Input Dataset Path'],
+        'train_source_code_id': train_info['Source Code ID'],
+        'train_source_code_path': train_info['Source Code Path'],
+        'train_task': train_info['task'],
+        'train_output_dataset_id': train_info['Output Dataset ID'],
+        'train_output_dataset_path': train_info['Output Dataset Path'],
+        'train_params': train_info['params'],
+    }
+    # return render(request, 'model_details_new.html', context)
+    return render(request, 'model_details_new.html', context)
+    
+
+
+def get_run_sequence(client, parent_run_id):
+    """
+    Returns a list of run IDs in the order in which they were executed, starting with the specified parent run ID
+    """
+    run_sequence = [parent_run_id]
+    
+    # get the parent run
+    parent_run = client.get_run(parent_run_id)
+    
+    # get the child runs
+    child_runs = client.search_runs(experiment_ids=[parent_run.info.experiment_id], filter_string=f"tags.mlflow.parentRunId = '{parent_run_id}'")
+    
+    # sort the child runs by start time
+    child_runs.sort(key=lambda r: r.info.start_time)
+    
+    # recursively process each child run
+    for child_run in child_runs:
+        previous_run_id = child_run.data.tags.get("previous_run_id")
+        if previous_run_id:
+            run_sequence.extend(get_run_sequence(client, previous_run_id))
+        run_sequence.append(child_run.info.run_id)
+    
+    return run_sequence
+
+
+# define a function to rename the key recursively
+def rename_key(data, key_path, new_name):
+    if len(key_path) == 1:
+        data[new_name] = data.pop(key_path[0])
+    else:
+        rename_key(data[key_path[0]], key_path[1:], new_name)
+
+# define a function to update the value of a key recursively
+def update_key(data, key_path, new_value):
+    if len(key_path) == 1:
+        data[key_path[0]] = new_value
+    else:
+        update_key(data[key_path[0]], key_path[1:], new_value)

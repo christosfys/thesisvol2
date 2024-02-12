@@ -1,0 +1,61 @@
+
+#search_bar{
+  padding-right: 100px;
+
+}
+hr {
+  margin-left: 50px;
+  margin-right: 50px;
+  border: none;
+  border-top: 1px solid black;
+}
+.bg-start{
+  background-color:rgb(219, 220, 218);
+}
+
+
+
+
+
+#table-container {
+    margin: 20px auto;
+  }
+  
+  table,
+  td,
+  th {
+    border: 1px solid black;
+    width: 100%;
+  }
+  .table {
+    border-spacing: 5px;
+  }
+  
+  th {
+    background-color: #f2f2f2;
+  }
+  
+  tr:hover {
+    background-color: #f5f5f5;
+  }
+  
+  td:first-child {
+    width: 25%;
+    background-color: #D9D9D9;
+  }
+  
+  
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th, td {
+    border: 1px solid #dddddd;
+    text-align: left;
+    padding: 8px;
+    width: 150px; /* Set the fixed width for each td */
+}
+
+
