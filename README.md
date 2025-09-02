@@ -1,163 +1,119 @@
+# Visual Design Based on the Roles of Metadata Concerning Machine-Learning Models  
 
+Diploma Thesis – **University of Crete, Department of Computer Science**  
+Author: **Χρήστος Φυσάρακης (ΑΜ: 4068)**  
+Supervisor: **Χαρίδημος Κονδυλάκης**  
 
+---
 
+## 📖 Introduction  
 
+The **ProCAncer-I** project aims to build the first European medical imaging platform focusing on prostate cancer (PCa), fully compliant with GDPR and ethical standards. The platform integrates large-scale data and AI algorithms under strict quality control measures.  
 
+The main objective of ProCAncer-I is to collect and organize a significant volume of multimodal data, including **mpMRI imaging** and **clinical data**, along with their metadata, to enable efficient and clinically oriented training of advanced AI models for prostate cancer management.  
 
+One of its applications, the **AI Passport**, is responsible for presenting all the necessary details to make an AI model fully usable. Metadata is collected and managed via **MLflow**.  
 
+As part of this thesis, two different **web applications** were implemented to visualize and manage metadata.  
 
+---
 
+## ⚙️ Implementation  
 
+The **AI Model Passport UI** is a **Django-based application**.  
+It provides a web interface to publish, explain, and share metadata with the public.  
 
+- **Frontend:** HTML, CSS, JavaScript  
+- **Backend:** Django  
+- **Dependencies:** `django`, `mlflow`, `qrcode`, `boto3`  
+- **Execution:**  
+  ```bash
+  python manage.py runserver
 
 
+🔹 Part I – Role-Based Views
+Experiment Page (Example: 2D Unet Prostate WG Segmentation)
 
-1)	Εισαγωγή
-Το ProCAncer-I στοχεύει στη δημιουργία της αρχικής ευρωπαϊκής ιατρικής πλατφόρμας απεικόνισης που εστιάζει στον καρκίνο του προστάτη (PCa) και είναι πλήρως συμβατή με τα δεοντολογικά πρότυπα και τους κανονισμούς GDPR. Η πλατφόρμα θα λειτουργεί υπό αυστηρά μέτρα ποιοτικού ελέγχου και θα ενσωματώνει τόσο μεγάλης κλίμακας δεδομένα όσο και αλγόριθμους τεχνητής νοημοσύνης. Ο πρωταρχικός στόχος της πλατφόρμας ProCAncer-I είναι να συγκεντρώσει και να οργανώσει έναν σημαντικό όγκο πολυτροπικών δεδομένων, συμπεριλαμβανομένων δεδομένων απεικόνισης mpMRI και κλινικών δεδομένων, μαζί με τα μεταδεδομένα τους, για να διευκολύνει την αποτελεσματική και κλινικά προσανατολισμένη εκπαίδευση προηγμένων μοντέλων τεχνητής νοημοσύνης για τον καρκίνο του προστάτη. διαχείριση. Τo  AΙ Passport είναι  μια εφαρμογή του ProCancer-I   είναι υπεύθυνο ώστε να απεικονίζει όλες τις λεπτομέρειες που χρειάζονται ώστε να είναι ένα μοντέλο πλήρως αξιοποιήσιμο .
-Τα μεταδεδόμενα που συλλέγονται, εισάγονται με το ΜLflow  και από εκεί αντλούνται . Στα πλαίσια της Διπλωματικής
-  μου εργασίας μου ζητήθηκε να υλοποιήσω δυο Διαφορετικές Ιστοσελίδες    από τα μεταδεδόμενά που συλλέγονται .
+Title and experiment info (fetched from MLflow).
 
-2)	Υλοποίηση
-To AI model passport UI είναι μια εφαρμογή   βασισμένη στην Django. Η εφαρμογή παρέχει μια σελίδα ώστε να δημοσιεύονται , να εξηγούνται και να μοιράζονται δεδομένα και να διαμοιράζονται προς το κοινό .Για να την απεικόνιση των δεδομένων χρησιμοποιείται ΗTML , CSS , JavaScript . Για την εκτέλεση  θα πρέπει να έχουν εγκατασταθεί τα πακέτα των Django , MLflow , qrcode, boto3. Αφού  εγκατασταθούν τα πακέτα  το πρόγραμμα εκτελείται με την εντολή python manage.py runserver. 
+Left panel includes three divs:
 
+Task type (e.g., classification, segmentation).
 
+Role selector: AI Developer, Patient, Clinical.
 
-Επιτυχής Υλοποίηση
-<img width="416" alt="image" src="https://github.com/user-attachments/assets/51670d1c-01d3-4e72-abde-c4810d9f1077" />
+QR code linking to GitLab with metadata collection code.
 
+Available Buttons
 
-  
+Download JSON → Export metadata as .json.
 
+Show More Info → Reveal additional metadata beyond user role.
 
-Πρώτη σελίδα που εμφανίζεται
-<img width="385" alt="image" src="https://github.com/user-attachments/assets/e7e29c92-2a7b-4bb7-9a99-0d2a82ae458b" />
+Save → Store selected info in sessionStorage.
 
- 
-Η πρώτη σελίδα που εμφανίζεται είναι η από πάνω : Σε αυτή βλέπουμε τα πειράματα χωρισμένα σε δυο κατηγόριες Segmentation και Classification . Εδώ πέρα παρατηρούμε τα  components τα οποία από είναι καθένα ένα πείραμα. Στην συνέχεια επιλέγουμε το πέιραμα που θέλουμε να προβάλουμε  Στην συνέχεια χωρίζονται οι φάσεις της διπλωματικής εργασίας 
-2.1 Α΄ Μέρος 
-2.1.1. Εισαγωγή στην σελίδα του πειράματος
-<img width="391" alt="image" src="https://github.com/user-attachments/assets/2c81f6d0-e0b6-471d-a161-7e07e1c8409e" />
+See Data → Navigate to aggregated view of saved metadata.
 
- 
-Εδώ έχουμε ανοίξει την σελίδα με το πείραμα  2D Unet Prostate WG Segmentation. Στην κορυφή παρατηρούμε τον τίτλο του πειράματος ενώ ακριβώς από κάτω έχουμε κάποιες πληροφορίες σχετικά με το πείραμα που εχουν συλλεχθεί από το MlFlow. Στα αριστερά έχουμε τρια divs . Tο πρώτο μας αναφέρει τι είδους task υλοποιείται , στο δεύτερο υπάρχει div στο οποίο έχει το ρόλο που θέλουμε να επιλεξουμε ( υπάρχουν τρεις ο AI Developer,Patient και clinical), Από κάτω υπάρχουν τα εξείς κουμπιά με την δικιά του λειτουργία το καθενα 
-•	Download Json : Η δουλεία του είναι να μας δίνει την δυνατότητα να κατεβάσουμε την πληροφορία που θέλουμε σε μορφή .json file
-•	Show More Info: Με αυτό το κουμπί ο χρήστης  μπορεί να δει εξτρα πληροφορίες εκτός από εκείνες που είναι για τον ρόλο του χρήστη 
-•	Save : Αποθηκεύονται οι πληροφορίες σε ένα sessionStorage που θέλουμε να κρατήσουμε ώστε να προβληθούν όλες μαζί στην επόμενη σελιδα που θα επισκεφτούμε
-•	See Data: Μας πηγαίνει στην νέα σελίδα οπού θα υπάρχουν συγκεντρωμένες οι πληροφορίες που θέλουμε να προβάλουμε
+Role Selection
 
+Dropdown with roles: AI Developer, Patient, Clinical.
 
+Users can select info from their role or combine from multiple roles.
 
-Στο τρίτο και τελευταίο div βλέπουμε παρατηρούμε ένα qr code με λαδί background . Ο σύνδεσμος που υπάρχει είναι ένα link που μας οδηγεί σε κωδικά   (gitlab)που δείχνει πληροφορίες για το πως συλλέγονται και αποθηκεύονται τα μεταδεδoμένα .
-2.1.2 Επιλογή ρόλου
-<img width="77" alt="image" src="https://github.com/user-attachments/assets/ef22cb01-6a1d-460f-aec1-61c353325c58" />
+Data Saving
 
-  
-Στο dropdown που υπάρχει στα αριστερά μας έχουμε τρεις επιλόγες (ΑΙ Developer ,patient , clinical). Στην συγκεκριμένη περίπτωση επιλεγούμε τον AI Developer 
-<img width="416" alt="image" src="https://github.com/user-attachments/assets/84fa860d-6a04-47c3-8d2c-ddbb352f9454" />
+Multiple selections supported.
 
+Success alert confirms storage.
 
- 
+Errors handled (e.g., no role selected, no checkbox selected).
 
-Εδώ έχουμε τον πίνακα με τις πληροφορίες για τον κάθε ρόλο. Στα αριστερά του πίνακα έχουμε για κάθε σειρά ένα  checkbox , όποια πληροφορία χρειάζεται να κρατήσουμε για να προβάλουμε στην επόμενη σελίδα .
-<img width="416" alt="image" src="https://github.com/user-attachments/assets/1df533b4-d005-4131-b3a9-85e663b34683" />
+Viewing Stored Data
 
- 
-Σε αυτή την φάση μεταβιβαζόμαστε αφού εχουμε πατήσει το κουμπι Show more info. Ο χρήστης έκτος τις πληροφορίες για τον ρόλο του μπορεί μέσω του πλήκτρου να δει και διαφορές πληροφορίες για τους άλλους δύο ρόλους .
-Είναι δυνατό ο κάθε να επιλέξει πληροφορίες και από τους άλλους ρόλους 
-2.1.3 Eπιλογή και αποθήκευση  πληροφοριών 
-<img width="416" alt="image" src="https://github.com/user-attachments/assets/55cf83d9-b54f-469a-9289-0bd198a956f1" />
+After saving, See Data is enabled.
 
- 
-Παράδειγμα επιλογής πολλών πληροφοριών
+Aggregated info displayed, organized per role.
 
+🔹 Part II – General Metadata View
 
-<img width="416" alt="image" src="https://github.com/user-attachments/assets/9ed59edc-4264-48f1-a94a-ea4e39a9a569" />
+Consolidates metadata into tables, accessible to all users.
 
- 
-Περίπτωση σωστής αποθήκευσης πληροφοριών. Εμφανίζεται ένα alert που μας γραφεί ότι οι πληροφορίες μας αποθηκεύτηκαν επιτυχώς. 
+Left panel includes task type, QR code, and three buttons:
 
+Download → Download .zip file with code & artifacts.
 
+Share Model → Share the experiment page.
 
+Download JSON → Export all metadata as .json.
 
-Περιπτώσεις Σφαλμάτων
- <img width="416" alt="image" src="https://github.com/user-attachments/assets/1522829a-55ff-43a7-8237-6c116c7f6d43" />
+Central page displays tables by category.
 
-1η περίπτωση: O χρήστης έχει πατήσει το κουμπί αποθήκευσης πληροφοριών χωρίς να έχει επιλέξει ρόλο.
- 
- <img width="416" alt="image" src="https://github.com/user-attachments/assets/aacd9e44-0ba4-4f3a-b5be-56cb8fcfe6c3" />
+A pipeline section illustrates experiment workflows.
 
-2η Περίπτωση : Δεν έχει επιλέγει κανένα από τα checkbox!!
+📊 Example Outputs
 
-2.1.4 Προβολή  αποθηκευμένων πληροφοριών
+JSON files are generated per task when Download JSON is used.
 
-Αφότου αποθηκευτούν οι  πληροφορίες τότε το κουμπί See Data είναι enabled και ο χρήστης έχει το δικαίωμα να πλοηγηθεί στην επόμενη σελίδα που όλες οι πληροφορίες έχουν αποθηκευτεί πλήρως. 
- 
- <img width="416" alt="image" src="https://github.com/user-attachments/assets/785c9d6f-d2e3-4250-9da6-6aadb796eb05" />
+Different experiments provide varied cases and parameters.
 
+📝 Conclusion
 
-Σε αυτήν την σελίδα έχουμε αποθηκευμένες τις πληροφορίες και προβάλλονται ανά ρόλο .
+The two implemented applications enable the collection and visualization of metadata:
 
+Part I: Role-based filtering ensures each user (AI Developer, Patient, Clinical) sees relevant information and can select useful metadata.
 
+Part II: A general overview provides consolidated metadata for the broader public.
 
-2.2 Μέρος Δεύτερο Διπλωματικής Εργασία
- <img width="370" alt="image" src="https://github.com/user-attachments/assets/49918f88-52b9-424a-8bab-362196cc6ff5" />
+These tools improve accessibility and usability of AI model metadata within ProCAncer-I.
 
-  
-Στο δεύτερο μέρος οι πληροφορίες προβάλλονται συγκεντρωμένες ανά πίνακα   σε μια γενική μορφή .Στα αριστερά  έχουμε το είδος του task και μετα από κάτω ένα div με τον σύνδεσμο μέσα στο qrcode  και τρία κουμπιά 
-Α) Download: Κατεβαίνει σε αρχείο μορφής .zip ο κώδικας για την συλλογή δεδομένων και των artificats 
-Β) Share Model : Ο χρήστης έχει το δικαίωμα να διαμοιράσει την σελίδα 
-Γ) Download Json: Όλη η πληροφορία κατεβαίνει σε json μορφη
-<img width="348" alt="image" src="https://github.com/user-attachments/assets/56ac7b82-6eea-416d-87f0-c1b16dad0cd3" />
-<img width="368" alt="image" src="https://github.com/user-attachments/assets/d142f5ea-e36a-4d25-b37b-2a97d9b9b54f" />
+🙏 Acknowledgements
 
+Special thanks to:
 
+Χαρίδημος Κονδυλάκης
 
+Βάλια Καλοκύρη
 
-Στην κεντρική σελίδα παρατηρούμε τους πίνακες ανα κατηγορία  χωρισμενους
-Στο τέλος έχουμε το pipeline το οποίο χωρίζεται σε διάφορες κατηγορίες 
+Χαράλαμπος Καλαντζόπουλος
 
- <img width="416" alt="image" src="https://github.com/user-attachments/assets/25148699-2c57-435d-8319-d266d4327c24" />
- <img width="416" alt="image" src="https://github.com/user-attachments/assets/2ac105b2-f4b4-4a99-ab94-ccd8ed5a17ec" />
-
-
- 
-Δύο διαφορετικά πειράματα τα οποία έχουν διαφορετικές περιπτώσεις και παραμέτρους 
-   
-
-
-
-
-
-
-Ένα παράδειγμα με τα json files που δημιουργούνται αφού πατήσουμε το κουμπι download Json . Είναι χωρισμένα ανα task
-
-3.Επίλογος
-
-Οι δύο εφαρμογές που δημιουργήθηκαν μας βοηθούν ώστε να μπορούμε να ενημερωνόμαστε και να συλλέγουμε πληροφορίες σχετικά με τα δεδομένα που υπάρχουν. Το πρώτο μέρος που χωρίζουμε τις πληροφορίες με βάση των ρόλων , θα έχει το δικαίωμα ο κάθε χρήστης ανάλογα τον ρόλο, που του αντιστοιχεί ,να βλέπει τις κάθε πληροφορίες του και να επιλέγει τις πιο χρήσιμες πληροφορίες. Στο δεύτερο μέρος έχουμε δημιουργήσει το γενικό μέρος με όλες τις πληροφορίες που είναι χρήσιμες για τον ευρύ κοινό και θα μπορεί ένας οποιοσδήποτε χρήστης  να βλέπει.
-
-
-4. Ευχαριστίες 
-
-Ευχαριστώ   πολύ τον κύριο Κονδυλάκη , την Βάλια Καλοκύρη και τον Χαράλαμπο Καλαντζόπουλο για την πολύτιμη βοηθειά  τους κατά την διάρκεια της εκπόνησης της εργασίας  
-
-
-
-Link για την προβολή κώδικα
-•	https://github.com/HarryKalantzopoulos/AI-model-passport-UI
-•	https://github.com/christosfys/thesisvol2
-•	https://git.procancer-i.eu/ChKalantzopoulos/dvc_mlflow_demo
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-![image](https://github.com/user-attachments/assets/d804d9ea-41ca-4b0b-b164-035332cde062)
+for their valuable support during the project.
